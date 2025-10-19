@@ -92,9 +92,88 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  username: 'username',
+  password: 'password',
+  email: 'email',
+  profilePicture: 'profilePicture',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  journalEntriesCount: 'journalEntriesCount',
+  privateEntriesCount: 'privateEntriesCount',
+  publicEntriesCount: 'publicEntriesCount',
+  protectedEntriesCount: 'protectedEntriesCount'
+};
+
+exports.Prisma.EntryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  visibility: 'visibility',
+  content: 'content',
+  qualityScore: 'qualityScore',
+  qualityEmoji: 'qualityEmoji',
+  mediaUrls: 'mediaUrls',
+  locations: 'locations',
+  stepsCount: 'stepsCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EntryLocationScalarFieldEnum = {
+  id: 'id',
+  entryId: 'entryId',
+  lat: 'lat',
+  lng: 'lng',
+  name: 'name',
+  placeId: 'placeId',
+  visitedAt: 'visitedAt',
+  sequence: 'sequence',
+  raw: 'raw',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+exports.EntryType = exports.$Enums.EntryType = {
+  FREEWRITE: 'FREEWRITE',
+  GUIDED: 'GUIDED'
+};
+
+exports.Visibility = exports.$Enums.Visibility = {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC',
+  PROTECTED: 'PROTECTED'
+};
 
 exports.Prisma.ModelName = {
-
+  User: 'User',
+  Entry: 'Entry',
+  EntryLocation: 'EntryLocation'
 };
 /**
  * Create the Client
@@ -135,6 +214,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -143,13 +223,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
-  "inlineSchemaHash": "f4defb510352aeb258e32fd0e4e744b44176032e921a554a415dd34c135bd53c",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id             String   @id @default(cuid())\n  username       String   @unique\n  password       String\n  email          String   @unique\n  profilePicture String? // URL to profile picture\n  createdAt      DateTime @default(now())\n  updatedAt      DateTime @updatedAt\n\n  // Counts\n  journalEntriesCount   Int @default(0)\n  privateEntriesCount   Int @default(0)\n  publicEntriesCount    Int @default(0)\n  protectedEntriesCount Int @default(0)\n\n  // Self-relation for friendships (directional access)\n  friends   User[] @relation(\"UserFriends\") // users this user has friended\n  friendsOf User[] @relation(\"UserFriends\") // users who have friended this user\n\n  // Relations\n  entries Entry[]\n}\n\nenum EntryType {\n  FREEWRITE\n  GUIDED\n}\n\nenum Visibility {\n  PRIVATE\n  PUBLIC\n  PROTECTED\n}\n\nmodel Entry {\n  id     String @id @default(cuid())\n  userId String\n  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  type       EntryType\n  visibility Visibility @default(PRIVATE)\n\n  // Optional free text content for the journal entry\n  content String?\n\n  // Day quality\n  qualityScore Int? // 1-10; enforce in app or via custom SQL migration if desired\n  qualityEmoji String? // store an emoji like \"🙂\" (optional)\n\n  // Media attachments (images/videos) as URLs\n  mediaUrls String[] // Postgres text[]\n\n  // Locations visited during the day; store as JSON array of objects\n  // e.g., [{ lat: 40.1, lng: -88.2, name: \"Campus\", at: \"2025-10-19T12:00:00Z\" }]\n  locations Json?\n\n  // Normalized locations (preferred for querying)\n  entryLocations EntryLocation[]\n\n  // Health metrics\n  stepsCount Int?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userId, createdAt(sort: Desc)])\n}\n\n// Normalized per-entry locations for better querying and indexing\nmodel EntryLocation {\n  id      String @id @default(cuid())\n  entryId String\n  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)\n\n  // Coordinates (WGS84). Float maps to Postgres double precision.\n  lat Float\n  lng Float\n\n  // Optional PostGIS geography point (requires migration to add the column and extension)\n  coordinates Unsupported(\"geography\")?\n\n  // Optional metadata for maps integrations\n  name      String?\n  placeId   String? // e.g., Google Place ID or provider key\n  visitedAt DateTime?\n  sequence  Int? // order of visit within the day\n  raw       Json? // optional raw provider payload\n\n  createdAt DateTime @default(now())\n\n  @@index([entryId])\n  @@index([visitedAt])\n  @@index([lat, lng])\n}\n",
+  "inlineSchemaHash": "e4c5b55e58aa766af70b00cb2e622a1ce012d5cc0550357058be74c14fd85d17",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"profilePicture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"journalEntriesCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"privateEntriesCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"publicEntriesCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"protectedEntriesCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"friends\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"UserFriends\"},{\"name\":\"friendsOf\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"UserFriends\"},{\"name\":\"entries\",\"kind\":\"object\",\"type\":\"Entry\",\"relationName\":\"EntryToUser\"}],\"dbName\":null},\"Entry\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"EntryToUser\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"EntryType\"},{\"name\":\"visibility\",\"kind\":\"enum\",\"type\":\"Visibility\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"qualityScore\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"qualityEmoji\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mediaUrls\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"locations\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"entryLocations\",\"kind\":\"object\",\"type\":\"EntryLocation\",\"relationName\":\"EntryToEntryLocation\"},{\"name\":\"stepsCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"EntryLocation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entryId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entry\",\"kind\":\"object\",\"type\":\"Entry\",\"relationName\":\"EntryToEntryLocation\"},{\"name\":\"lat\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lng\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"placeId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"visitedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"sequence\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"raw\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

@@ -120,9 +120,88 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  username: 'username',
+  password: 'password',
+  email: 'email',
+  profilePicture: 'profilePicture',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  journalEntriesCount: 'journalEntriesCount',
+  privateEntriesCount: 'privateEntriesCount',
+  publicEntriesCount: 'publicEntriesCount',
+  protectedEntriesCount: 'protectedEntriesCount'
+};
+
+exports.Prisma.EntryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  visibility: 'visibility',
+  content: 'content',
+  qualityScore: 'qualityScore',
+  qualityEmoji: 'qualityEmoji',
+  mediaUrls: 'mediaUrls',
+  locations: 'locations',
+  stepsCount: 'stepsCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EntryLocationScalarFieldEnum = {
+  id: 'id',
+  entryId: 'entryId',
+  lat: 'lat',
+  lng: 'lng',
+  name: 'name',
+  placeId: 'placeId',
+  visitedAt: 'visitedAt',
+  sequence: 'sequence',
+  raw: 'raw',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+exports.EntryType = exports.$Enums.EntryType = {
+  FREEWRITE: 'FREEWRITE',
+  GUIDED: 'GUIDED'
+};
+
+exports.Visibility = exports.$Enums.Visibility = {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC',
+  PROTECTED: 'PROTECTED'
+};
 
 exports.Prisma.ModelName = {
-
+  User: 'User',
+  Entry: 'Entry',
+  EntryLocation: 'EntryLocation'
 };
 
 /**
