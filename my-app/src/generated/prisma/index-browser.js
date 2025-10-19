@@ -125,6 +125,7 @@ exports.Prisma.UserScalarFieldEnum = {
   username: 'username',
   password: 'password',
   email: 'email',
+  emailVerified: 'emailVerified',
   profilePicture: 'profilePicture',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -160,6 +161,34 @@ exports.Prisma.EntryLocationScalarFieldEnum = {
   sequence: 'sequence',
   raw: 'raw',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.AccountScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  provider: 'provider',
+  providerAccountId: 'providerAccountId',
+  refresh_token: 'refresh_token',
+  access_token: 'access_token',
+  expires_at: 'expires_at',
+  token_type: 'token_type',
+  scope: 'scope',
+  id_token: 'id_token',
+  session_state: 'session_state'
+};
+
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  sessionToken: 'sessionToken',
+  userId: 'userId',
+  expires: 'expires'
+};
+
+exports.Prisma.VerificationTokenScalarFieldEnum = {
+  identifier: 'identifier',
+  token: 'token',
+  expires: 'expires'
 };
 
 exports.Prisma.SortOrder = {
@@ -201,7 +230,10 @@ exports.Visibility = exports.$Enums.Visibility = {
 exports.Prisma.ModelName = {
   User: 'User',
   Entry: 'Entry',
-  EntryLocation: 'EntryLocation'
+  EntryLocation: 'EntryLocation',
+  Account: 'Account',
+  Session: 'Session',
+  VerificationToken: 'VerificationToken'
 };
 
 /**
