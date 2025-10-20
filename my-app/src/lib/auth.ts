@@ -43,7 +43,10 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           username: user.username,
-          name: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profilePicture: user.profilePicture,
+          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username,
         }
       }
     })
@@ -52,16 +55,49 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt"
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.username = user.username
+        token.firstName = user.firstName
+        token.lastName = user.lastName
+        token.profilePicture = user.profilePicture
       }
+      
+      // If session is being updated, fetch fresh user data from database
+      if (trigger === "update" && token.sub) {
+        try {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+              email: true,
+            }
+          })
+          
+          if (freshUser) {
+            token.username = freshUser.username
+            token.firstName = freshUser.firstName
+            token.lastName = freshUser.lastName
+            token.profilePicture = freshUser.profilePicture
+          }
+        } catch (error) {
+          console.error("Error fetching fresh user data:", error)
+        }
+      }
+      
       return token
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!
         session.user.username = token.username as string
+        session.user.firstName = token.firstName as string | null
+        session.user.lastName = token.lastName as string | null
+        session.user.profilePicture = token.profilePicture as string | null
       }
       return session
     }

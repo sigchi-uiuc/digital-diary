@@ -9,7 +9,6 @@ interface Entry {
   type: "FREEWRITE" | "GUIDED"
   content: string | null
   visibility: "PRIVATE" | "PUBLIC" | "PROTECTED"
-  qualityScore: number | null
   qualityEmoji: string | null
   createdAt: string
   updatedAt: string
@@ -133,60 +132,56 @@ export default function EntriesList() {
   return (
     <div className="space-y-4">
       {entries.map((entry) => (
-        <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEntryTypeColor(entry.type)}`}>
-                  {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
-                </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getVisibilityColor(entry.visibility)}`}>
-                  {entry.visibility.toLowerCase()}
-                </span>
-                {entry.qualityEmoji && (
-                  <span className="text-lg">{entry.qualityEmoji}</span>
-                )}
-              </div>
-              
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Entry from {formatDate(entry.createdAt)}
-              </h3>
-              
-              <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                {entry.content || "No content"}
-              </p>
-              
-              <div className="flex items-center text-xs text-gray-500">
-                <span>Created: {formatDate(entry.createdAt)}</span>
-                {entry.updatedAt !== entry.createdAt && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span>Updated: {formatDate(entry.updatedAt)}</span>
-                  </>
-                )}
-              </div>
+        <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <Link href={`/entries/${entry.id}`} className="block p-6 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEntryTypeColor(entry.type)}`}>
+                {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
+              </span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getVisibilityColor(entry.visibility)}`}>
+                {entry.visibility.toLowerCase()}
+              </span>
+              {entry.qualityEmoji && (
+                <span className="text-lg">{entry.qualityEmoji}</span>
+              )}
             </div>
             
-            <div className="flex items-center space-x-2 ml-4">
-              <Link
-                href={`/entries/${entry.id}`}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              >
-                View
-              </Link>
-              <Link
-                href={`/entries/${entry.id}/edit`}
-                className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-              >
-                Edit
-              </Link>
-              <button
-                onClick={() => deleteEntry(entry.id)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
-              >
-                Delete
-              </button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Entry from {formatDate(entry.createdAt)}
+            </h3>
+            
+            <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+              {entry.content || "No content"}
+            </p>
+            
+            <div className="flex items-center text-xs text-gray-500">
+              <span>Created: {formatDate(entry.createdAt)}</span>
+              {entry.updatedAt !== entry.createdAt && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span>Updated: {formatDate(entry.updatedAt)}</span>
+                </>
+              )}
             </div>
+          </Link>
+          
+          {/* Action buttons - positioned outside the clickable area */}
+          <div className="px-6 pb-4 flex items-center justify-end space-x-2">
+            <Link
+              href={`/entries/${entry.id}/edit`}
+              className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+            >
+              Edit
+            </Link>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                deleteEntry(entry.id)
+              }}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Delete
+            </button>
           </div>
         </div>
       ))}

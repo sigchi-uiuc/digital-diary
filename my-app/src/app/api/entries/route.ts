@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { type, content, visibility = "PRIVATE", qualityScore, qualityEmoji, mediaUrls = [], locations } = await request.json()
+    const { type, content, visibility = "PRIVATE", qualityEmoji, mediaUrls = [], locations } = await request.json()
 
     if (!type || !content) {
       return NextResponse.json(
@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
         type,
         content,
         visibility,
-        qualityScore,
         qualityEmoji,
         mediaUrls,
         locations: locations || null

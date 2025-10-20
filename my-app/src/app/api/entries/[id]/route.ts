@@ -53,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, visibility, qualityScore, qualityEmoji, mediaUrls, locations } = await request.json()
+    const { content, visibility, qualityEmoji, mediaUrls, locations } = await request.json()
 
     const existingEntry = await prisma.entry.findFirst({
       where: {
@@ -71,7 +71,6 @@ export async function PUT(
       data: {
         content,
         visibility,
-        qualityScore,
         qualityEmoji,
         mediaUrls,
         locations: locations || null

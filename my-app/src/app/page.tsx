@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import EntriesList from "@/components/EntriesList"
 import CreateEntryDropdown from "@/components/CreateEntryDropdown"
+import ProfileDropdown from "@/components/ProfileDropdown"
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -88,15 +89,7 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                Welcome, {session.user?.username || session.user?.email}!
-              </span>
-              <button
-                onClick={() => signOut()}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Sign Out
-              </button>
+              <ProfileDropdown />
             </div>
           </div>
         </div>

@@ -9,7 +9,6 @@ interface Entry {
   type: "FREEWRITE" | "GUIDED"
   content: string | null
   visibility: "PRIVATE" | "PUBLIC" | "PROTECTED"
-  qualityScore: number | null
   qualityEmoji: string | null
   createdAt: string
   updatedAt: string
@@ -182,18 +181,6 @@ export default function ViewEntry() {
                 </div>
               )}
 
-              {/* Quality Score */}
-              {entry.qualityScore && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium text-gray-700">Day Rating:</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-indigo-600">{entry.qualityScore}</span>
-                      <span className="text-sm text-gray-500">/ 10</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

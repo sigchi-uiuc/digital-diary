@@ -7,7 +7,6 @@ import Link from "next/link"
 export default function CreateFreewriteEntry() {
   const [content, setContent] = useState("")
   const [visibility, setVisibility] = useState("PRIVATE")
-  const [qualityScore, setQualityScore] = useState<number | null>(null)
   const [qualityEmoji, setQualityEmoji] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -51,7 +50,6 @@ export default function CreateFreewriteEntry() {
           type: "FREEWRITE",
           content,
           visibility,
-          qualityScore,
           qualityEmoji: qualityEmoji || null,
         }),
       })
@@ -69,7 +67,13 @@ export default function CreateFreewriteEntry() {
     }
   }
 
-  const emojiOptions = ["😊", "😔", "😴", "🤔", "😌", "😤", "😢", "😍", "🤗", "😎", "🥳", "😌", "🙂", "😐", "😕"]
+  const emojiOptions = [
+    { emoji: "😢", label: "Terrible" },
+    { emoji: "😔", label: "Sad" },
+    { emoji: "😐", label: "Okay" },
+    { emoji: "😊", label: "Good" },
+    { emoji: "😄", label: "Fantastic" }
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,47 +128,27 @@ export default function CreateFreewriteEntry() {
                 </p>
               </div>
 
-              {/* Quality Assessment */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="qualityScore" className="block text-sm font-medium text-gray-700 mb-2">
-                    How was your day? (1-10)
-                  </label>
-                  <select
-                    id="qualityScore"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={qualityScore || ""}
-                    onChange={(e) => setQualityScore(e.target.value ? parseInt(e.target.value) : null)}
-                  >
-                    <option value="">Select a score</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                      <option key={score} value={score}>
-                        {score} - {score <= 3 ? "Not great" : score <= 6 ? "Okay" : score <= 8 ? "Good" : "Excellent"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    How are you feeling?
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {emojiOptions.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className={`w-10 h-10 rounded-full border-2 text-lg hover:scale-110 transition-transform ${
-                          qualityEmoji === emoji
-                            ? "border-indigo-500 bg-indigo-50"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                        onClick={() => setQualityEmoji(qualityEmoji === emoji ? "" : emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+              {/* Mood Assessment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4 text-center">
+                  How was your day today?
+                </label>
+                <div className="flex justify-center gap-4">
+                  {emojiOptions.map((option) => (
+                    <button
+                      key={option.emoji}
+                      type="button"
+                      className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                        qualityEmoji === option.emoji
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                      onClick={() => setQualityEmoji(qualityEmoji === option.emoji ? "" : option.emoji)}
+                    >
+                      <span className="text-3xl mb-1">{option.emoji}</span>
+                      <span className="text-xs text-gray-600">{option.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 

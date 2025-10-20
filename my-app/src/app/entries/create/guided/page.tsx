@@ -3,71 +3,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-
-const guidedPrompts = [
-  {
-    id: "gratitude",
-    title: "Gratitude Reflection",
-    description: "Reflect on what you're grateful for today",
-    prompts: [
-      "What are three things you're grateful for today?",
-      "How did someone make your day better?",
-      "What small moment brought you joy?",
-      "What are you looking forward to?"
-    ]
-  },
-  {
-    id: "reflection",
-    title: "Daily Reflection",
-    description: "Look back on your day and process your experiences",
-    prompts: [
-      "What was the highlight of your day?",
-      "What challenged you today?",
-      "What did you learn about yourself?",
-      "How did you grow or change today?"
-    ]
-  },
-  {
-    id: "goals",
-    title: "Goal Setting",
-    description: "Plan and reflect on your personal goals",
-    prompts: [
-      "What did you accomplish today?",
-      "What goals do you want to work on tomorrow?",
-      "What obstacles are you facing?",
-      "How can you overcome these challenges?"
-    ]
-  },
-  {
-    id: "emotions",
-    title: "Emotional Check-in",
-    description: "Explore and process your emotions",
-    prompts: [
-      "What emotions did you experience today?",
-      "What triggered these emotions?",
-      "How did you handle difficult feelings?",
-      "What would you do differently next time?"
-    ]
-  },
-  {
-    id: "relationships",
-    title: "Relationship Reflection",
-    description: "Think about your connections with others",
-    prompts: [
-      "Who did you connect with today?",
-      "How did you show care for someone?",
-      "What relationship needs attention?",
-      "How can you strengthen your connections?"
-    ]
-  }
-]
+import { moodBasedPrompts, emojiOptions } from "@/lib/guidedPrompts"
 
 export default function CreateGuidedEntry() {
-  const [selectedPrompt, setSelectedPrompt] = useState("")
+  const [currentStep, setCurrentStep] = useState<'mood' | 'prompts'>('mood')
+  const [selectedMood, setSelectedMood] = useState("")
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [visibility, setVisibility] = useState("PRIVATE")
-  const [qualityScore, setQualityScore] = useState<number | null>(null)
-  const [qualityEmoji, setQualityEmoji] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
@@ -95,9 +37,9 @@ export default function CreateGuidedEntry() {
     return () => clearInterval(interval)
   }, [])
 
-  const handlePromptChange = (promptId: string) => {
-    setSelectedPrompt(promptId)
-    setResponses({})
+  const handleMoodSelection = (mood: string) => {
+    setSelectedMood(mood)
+    setCurrentStep('prompts')
   }
 
   const handleResponseChange = (promptIndex: number, value: string) => {
@@ -112,15 +54,21 @@ export default function CreateGuidedEntry() {
     setIsLoading(true)
     setError("")
 
-    const prompt = guidedPrompts.find(p => p.id === selectedPrompt)
-    if (!prompt) {
-      setError("Please select a guided prompt")
+    if (!selectedMood) {
+      setError("Please select your mood")
+      setIsLoading(false)
+      return
+    }
+
+    const promptData = moodBasedPrompts[selectedMood as keyof typeof moodBasedPrompts]
+    if (!promptData) {
+      setError("Invalid mood selection")
       setIsLoading(false)
       return
     }
 
     // Combine all responses into structured content
-    const structuredContent = prompt.prompts
+    const structuredContent = promptData.prompts
       .map((promptText, index) => {
         const response = responses[index] || ""
         return `**${promptText}**\n${response}`
@@ -137,8 +85,7 @@ export default function CreateGuidedEntry() {
           type: "GUIDED",
           content: structuredContent,
           visibility,
-          qualityScore,
-          qualityEmoji: qualityEmoji || null,
+          qualityEmoji: selectedMood,
         }),
       })
 
@@ -155,8 +102,7 @@ export default function CreateGuidedEntry() {
     }
   }
 
-  const emojiOptions = ["😊", "😔", "😴", "🤔", "😌", "😤", "😢", "😍", "🤗", "😎", "🥳", "😌", "🙂", "😐", "😕"]
-  const selectedPromptData = guidedPrompts.find(p => p.id === selectedPrompt)
+  const selectedPromptData = selectedMood ? moodBasedPrompts[selectedMood as keyof typeof moodBasedPrompts] : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -192,38 +138,63 @@ export default function CreateGuidedEntry() {
                 </div>
               )}
 
-              {/* Prompt Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Choose a guided prompt:
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {guidedPrompts.map((prompt) => (
-                    <button
-                      key={prompt.id}
-                      type="button"
-                      onClick={() => handlePromptChange(prompt.id)}
-                      className={`p-4 text-left border-2 rounded-lg transition-colors ${
-                        selectedPrompt === prompt.id
-                          ? "border-indigo-500 bg-indigo-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <h3 className="font-medium text-gray-900">{prompt.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{prompt.description}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Guided Prompts */}
-              {selectedPromptData && (
+              {/* Step 1: Mood Selection */}
+              {currentStep === 'mood' && (
                 <div className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-medium text-blue-900">{selectedPromptData.title}</h3>
-                    <p className="text-sm text-blue-700 mt-1">{selectedPromptData.description}</p>
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                      How are you feeling right now?
+                    </h2>
+                    <p className="text-gray-600">
+                      Your mood will help us provide the most relevant questions for you
+                    </p>
                   </div>
 
+                  <div className="flex justify-center gap-4">
+                    {emojiOptions.map((option) => (
+                      <button
+                        key={option.emoji}
+                        type="button"
+                        onClick={() => handleMoodSelection(option.emoji)}
+                        className="flex flex-col items-center p-4 rounded-lg border-2 border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 transition-all hover:scale-105"
+                      >
+                        <span className="text-4xl mb-2">{option.emoji}</span>
+                        <span className="text-sm text-gray-700 font-medium">{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Guided Prompts */}
+              {currentStep === 'prompts' && selectedPromptData && (
+                <div className="space-y-6">
+                  {/* Back button */}
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep('mood')}
+                      className="flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back to mood selection
+                    </button>
+                  </div>
+
+                  {/* Prompt header */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl">{selectedMood}</span>
+                      <div>
+                        <h3 className="font-medium text-blue-900">{selectedPromptData.title}</h3>
+                        <p className="text-sm text-blue-700 mt-1">{selectedPromptData.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prompts */}
                   {selectedPromptData.prompts.map((promptText, index) => (
                     <div key={index}>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,99 +209,53 @@ export default function CreateGuidedEntry() {
                       />
                     </div>
                   ))}
-                </div>
-              )}
 
-              {/* Quality Assessment */}
-              {selectedPromptData && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Visibility */}
                   <div>
-                    <label htmlFor="qualityScore" className="block text-sm font-medium text-gray-700 mb-2">
-                      How was your day? (1-10)
+                    <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-2">
+                      Entry Visibility
                     </label>
                     <select
-                      id="qualityScore"
+                      id="visibility"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      value={qualityScore || ""}
-                      onChange={(e) => setQualityScore(e.target.value ? parseInt(e.target.value) : null)}
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value)}
                     >
-                      <option value="">Select a score</option>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                        <option key={score} value={score}>
-                          {score} - {score <= 3 ? "Not great" : score <= 6 ? "Okay" : score <= 8 ? "Good" : "Excellent"}
-                        </option>
-                      ))}
+                      <option value="PRIVATE">Private - Only you can see this</option>
+                      <option value="PROTECTED">Protected - Visible to friends</option>
+                      <option value="PUBLIC">Public - Visible to everyone</option>
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How are you feeling?
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {emojiOptions.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          className={`w-10 h-10 rounded-full border-2 text-lg hover:scale-110 transition-transform ${
-                            qualityEmoji === emoji
-                              ? "border-indigo-500 bg-indigo-50"
-                              : "border-gray-300 hover:border-gray-400"
-                          }`}
-                          onClick={() => setQualityEmoji(qualityEmoji === emoji ? "" : emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Visibility */}
-              {selectedPromptData && (
-                <div>
-                  <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-2">
-                    Entry Visibility
-                  </label>
-                  <select
-                    id="visibility"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value)}
-                  >
-                    <option value="PRIVATE">Private - Only you can see this</option>
-                    <option value="PROTECTED">Protected - Visible to friends</option>
-                    <option value="PUBLIC">Public - Visible to everyone</option>
-                  </select>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-                <Link
-                  href="/"
-                  className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                >
-                  Cancel
-                </Link>
-                <div className="flex items-center space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/")}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              {currentStep === 'prompts' && (
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                  <Link
+                    href="/"
+                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
                   >
-                    Save as Draft
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoading || !selectedPromptData || Object.keys(responses).length === 0}
-                    className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? "Creating..." : "Create Entry"}
-                  </button>
+                    Cancel
+                  </Link>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push("/")}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Save as Draft
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading || !selectedMood || Object.keys(responses).length === 0}
+                      className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? "Creating..." : "Create Entry"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </form>
           </div>
         </div>
