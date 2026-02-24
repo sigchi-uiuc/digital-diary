@@ -27,7 +27,12 @@ export async function POST(request: NextRequest) {
     console.error("Error syncing calendar events:", error)
 
     const msg = (error?.message || "").toString().toLowerCase()
-    if (msg.includes("not connected") || msg.includes("tokens missing") || msg.includes("failed to refresh")) {
+    if (
+      msg.includes("not connected") ||
+      msg.includes("tokens missing") ||
+      msg.includes("failed to refresh") ||
+      msg.includes("reconnect required")
+    ) {
       const payload: any = { error: "Google Calendar not connected. Please connect your Google account." }
       if (process.env.NODE_ENV !== "production") {
         payload.detail = error?.message || String(error)

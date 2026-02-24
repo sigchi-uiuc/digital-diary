@@ -3,6 +3,21 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
+function isInvalidGrantError(error: unknown): boolean {
+  const err = error as any
+  const message = (err?.message || "").toString().toLowerCase()
+  const directError = (err?.error || "").toString().toLowerCase()
+  const responseError = (err?.response?.data?.error || "").toString().toLowerCase()
+  const causeError = (err?.cause?.error || "").toString().toLowerCase()
+
+  return (
+    message.includes("invalid_grant") ||
+    directError === "invalid_grant" ||
+    responseError === "invalid_grant" ||
+    causeError === "invalid_grant"
+  )
+}
+
 export async function getGoogleCalendarClient(userId: string) {
   // Get the user's Google account from the database
   const account = await prisma.account.findFirst({
@@ -12,7 +27,7 @@ export async function getGoogleCalendarClient(userId: string) {
     },
   })
 
-  if (!account || !account.access_token || !account.refresh_token) {
+  if (!account || !account.refresh_token) {
     throw new Error("Google account not connected or tokens missing")
   }
 
@@ -31,7 +46,7 @@ export async function getGoogleCalendarClient(userId: string) {
   })
 
   // Refresh token if expired
-  if (account.expires_at && account.expires_at * 1000 < Date.now()) {
+  if (!account.access_token || (account.expires_at && account.expires_at * 1000 < Date.now())) {
     try {
       const { credentials } = await oauth2Client.refreshAccessToken()
       
@@ -48,6 +63,20 @@ export async function getGoogleCalendarClient(userId: string) {
       oauth2Client.setCredentials(credentials)
     } catch (error) {
       console.error("Error refreshing Google token:", error)
+
+      if (isInvalidGrantError(error)) {
+        await prisma.account.update({
+          where: { id: account.id },
+          data: {
+            access_token: null,
+            refresh_token: null,
+            expires_at: null,
+          },
+        })
+
+        throw new Error("Google Calendar reconnect required")
+      }
+
       throw new Error("Failed to refresh Google token")
     }
   }
@@ -130,8 +159,11 @@ export async function isGoogleCalendarConnected(userId: string): Promise<boolean
         userId: userId,
         provider: "google",
       },
+      select: {
+        refresh_token: true,
+      },
     })
-    return !!account && !!account.access_token
+    return !!account?.refresh_token
   } catch (error) {
     return false
   }

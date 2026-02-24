@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching calendar events:", error)
 
     const msg = (error?.message || "").toString().toLowerCase()
-    if (msg.includes("not connected") || msg.includes("tokens missing") || msg.includes("failed to refresh")) {
+    if (
+      msg.includes("not connected") ||
+      msg.includes("tokens missing") ||
+      msg.includes("failed to refresh") ||
+      msg.includes("reconnect required")
+    ) {
       return NextResponse.json(
         { error: "Google Calendar not connected. Please connect your Google account." },
         { status: 401 }

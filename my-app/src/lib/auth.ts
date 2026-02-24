@@ -73,12 +73,13 @@ export const authOptions: NextAuthOptions = {
         })
         
         if (existingUser) {
-          // Link Google account to existing user instead of creating new one
-          const existingAccount = await prisma.account.findFirst({
+          // Link Google account to existing user and always refresh stored OAuth tokens
+          const existingAccount = await prisma.account.findUnique({
             where: {
-              provider: "google",
-              providerAccountId: account.providerAccountId,
-              userId: existingUser.id,
+              provider_providerAccountId: {
+                provider: "google",
+                providerAccountId: account.providerAccountId,
+              },
             },
           })
           
@@ -96,6 +97,25 @@ export const authOptions: NextAuthOptions = {
                 token_type: account.token_type,
                 scope: account.scope,
                 id_token: account.id_token,
+              },
+            })
+          } else {
+            await prisma.account.update({
+              where: {
+                provider_providerAccountId: {
+                  provider: "google",
+                  providerAccountId: account.providerAccountId,
+                },
+              },
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                access_token: account.access_token ?? existingAccount.access_token,
+                refresh_token: account.refresh_token ?? existingAccount.refresh_token,
+                expires_at: account.expires_at ?? existingAccount.expires_at,
+                token_type: account.token_type ?? existingAccount.token_type,
+                scope: account.scope ?? existingAccount.scope,
+                id_token: account.id_token ?? existingAccount.id_token,
               },
             })
           }
