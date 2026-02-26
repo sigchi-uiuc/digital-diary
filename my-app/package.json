@@ -12,20 +12,19 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@auth/prisma-adapter": "^2.11.0",
-    "@prisma/client": "^6.17.1",
+    "@prisma/client": "^6.19.2",
     "googleapis": "^169.0.0",
     "next": "^15.5.9",
     "next-auth": "^4.24.11",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "sharp": "^0.34.5"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "prisma": "^6.17.1",
+    "prisma": "^6.19.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

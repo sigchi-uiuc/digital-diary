@@ -7,6 +7,7 @@ import CreateEntryDropdown from "@/components/CreateEntryDropdown"
 import ProfileDropdown from "@/components/ProfileDropdown"
 import CalendarEvents from "@/components/CalendarEvents"
 import WeatherDisplay from "@/components/WeatherDisplay"
+import DiaryCalendarPopup from "@/components/DiaryCalendar"
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -126,9 +127,14 @@ export default function Home() {
             </div>
 
             {/* Right Column - Calendar Events */}
-            <div>
+            <div className="space-y-8">
               <CalendarEvents />
+              <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="text-lg font-semibold text-[#1a4d3e] mb-2">Diary Calendar</h3>
+                <DiaryCalendarPopup />
+              </div>
             </div>
+
           </div>
         </div>
       </main>
