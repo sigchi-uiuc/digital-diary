@@ -123,17 +123,6 @@ export default function ProfileDropdown() {
                 Edit Profile
               </Link>
 
-              <Link
-                href="/search"
-                className="flex items-center px-5 py-3 text-sm text-[#1a4d3e] hover:bg-white/30 transition-all"
-                onClick={() => setIsOpen(false)}
-              >
-                <svg className="w-5 h-5 mr-3 text-[#4A90E2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5V9a2 2 0 00-2-2h-3m-4 13H8m4 0v-6m0 6h4M8 20H3V9a2 2 0 012-2h3m0 0V5a2 2 0 012-2h4a2 2 0 012 2v2m-8 0h8" />
-                </svg>
-                Find People
-              </Link>
-
               <div className="border-t border-white/20 mt-1">
                 <button
                   onClick={() => {

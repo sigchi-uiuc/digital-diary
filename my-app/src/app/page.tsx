@@ -99,6 +99,12 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               <WeatherDisplay />
+              <Link
+                href="/friends"
+                className="glass rounded-2xl px-4 py-2 text-sm text-[#1a4d3e] hover:bg-white/40 transition-all font-medium"
+              >
+                My Friends
+              </Link>
               <ProfileDropdown />
             </div>
           </div>

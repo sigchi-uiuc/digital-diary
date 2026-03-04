@@ -22,6 +22,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: [] })
     }
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        friends: {
+          select: { id: true },
+        },
+      },
+    })
+
+    const friendIds = new Set((currentUser?.friends || []).map((friend) => friend.id))
+
     const users = await prisma.user.findMany({
       where: {
         id: { not: session.user.id },
@@ -42,7 +53,12 @@ export async function GET(request: NextRequest) {
       take,
     })
 
-    return NextResponse.json({ users })
+    return NextResponse.json({
+      users: users.map((user) => ({
+        ...user,
+        isFriend: friendIds.has(user.id),
+      })),
+    })
   } catch (error) {
     console.error("Error searching users:", error)
     return NextResponse.json(
