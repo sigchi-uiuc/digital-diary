@@ -5,6 +5,29 @@ import { authOptions } from "@/lib/auth"
 
 const prisma = new PrismaClient()
 
+type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
+
+function isMissingBlockedTable(error: unknown) {
+  return error instanceof Error && error.message.includes('BlockedUser') && error.message.includes('does not exist')
+}
+
+async function loadBlockedIds(userId: string) {
+  try {
+    const rows = await prisma.$queryRaw<{ blockedId: string }[]>`
+      SELECT "blockedId"
+      FROM "BlockedUser"
+      WHERE "blockerId" = ${userId}
+    `
+
+    return rows.map((row) => row.blockedId)
+  } catch (error) {
+    if (isMissingBlockedTable(error)) {
+      return []
+    }
+    throw error
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -22,16 +45,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: [] })
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        friends: {
-          select: { id: true },
+    const [currentUser, blockedIdsList] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          friends: {
+            select: { id: true },
+          },
+          friendsOf: {
+            select: { id: true },
+          },
         },
-      },
-    })
+      }),
+      loadBlockedIds(session.user.id),
+    ])
 
-    const friendIds = new Set((currentUser?.friends || []).map((friend) => friend.id))
+    const outgoingIds = new Set((currentUser?.friends || []).map((friend) => friend.id))
+    const incomingIds = new Set((currentUser?.friendsOf || []).map((friend) => friend.id))
+    const blockedIds = new Set(blockedIdsList)
 
     const users = await prisma.user.findMany({
       where: {
@@ -56,7 +87,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       users: users.map((user) => ({
         ...user,
-        isFriend: friendIds.has(user.id),
+        relationshipStatus: getRelationshipStatus(user.id, outgoingIds, incomingIds, blockedIds),
       })),
     })
   } catch (error) {
@@ -66,4 +97,21 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getRelationshipStatus(
+  userId: string,
+  outgoingIds: Set<string>,
+  incomingIds: Set<string>,
+  blockedIds: Set<string>
+): RelationshipStatus {
+  if (blockedIds.has(userId)) return "blocked"
+
+  const hasOutgoing = outgoingIds.has(userId)
+  const hasIncoming = incomingIds.has(userId)
+
+  if (hasOutgoing && hasIncoming) return "friend"
+  if (hasOutgoing) return "outgoing_request"
+  if (hasIncoming) return "incoming_request"
+  return "none"
 }

@@ -20,26 +20,36 @@ model User {
   lastName              String?
   email                 String   @unique
   emailVerified         DateTime?
-  profilePicture        String?  // URL to profile picture
+  profilePicture        String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  // NextAuth fields
   accounts              Account[]
   sessions              Session[]
 
-  // Counts
   journalEntriesCount   Int      @default(0)
   privateEntriesCount   Int      @default(0)
   publicEntriesCount    Int      @default(0)
   protectedEntriesCount Int      @default(0)
 
-  // Self-relation for friendships (directional access)
-  friends   User[] @relation("UserFriends")   // users this user has friended
-  friendsOf User[] @relation("UserFriends")   // users who have friended this user
+  friends               User[]        @relation("UserFriends")
+  friendsOf             User[]        @relation("UserFriends")
+  blocksSent            BlockedUser[] @relation("UserBlocksSent")
+  blocksReceived        BlockedUser[] @relation("UserBlocksReceived")
 
-  // Relations
-  entries   Entry[]
+  entries               Entry[]
+}
+
+model BlockedUser {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User @relation("UserBlocksSent", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User @relation("UserBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 enum EntryType {
@@ -60,25 +70,12 @@ model Entry {
 
   type        EntryType
   visibility  Visibility  @default(PRIVATE)
-
-  // Optional free text content for the journal entry
   content     String?
-
-  // Day quality
-  qualityScore Int?       // 1-10; enforce in app or via custom SQL migration if desired
-  qualityEmoji String?    // store an emoji like "🙂" (optional)
-
-  // Media attachments (images/videos) as URLs
-  mediaUrls   String[]    // Postgres text[]
-
-  // Locations visited during the day; store as JSON array of objects
-  // e.g., [{ lat: 40.1, lng: -88.2, name: "Campus", at: "2025-10-19T12:00:00Z" }]
+  qualityScore Int?
+  qualityEmoji String?
+  mediaUrls   String[]
   locations   Json?
-
-  // Normalized locations (preferred for querying)
   entryLocations EntryLocation[]
-
-  // Health metrics
   stepsCount  Int?
 
   createdAt   DateTime    @default(now())
@@ -87,26 +84,18 @@ model Entry {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-// Normalized per-entry locations for better querying and indexing
 model EntryLocation {
   id       String   @id @default(cuid())
   entryId  String
   entry    Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
-
-  // Coordinates (WGS84). Float maps to Postgres double precision.
   lat      Float
   lng      Float
-
-  // Optional PostGIS geography point (requires migration to add the column and extension)
   coordinates Unsupported("geography")?
-
-  // Optional metadata for maps integrations
   name     String?
-  placeId  String?   // e.g., Google Place ID or provider key
+  placeId  String?
   visitedAt DateTime?
-  sequence Int?      // order of visit within the day
-  raw      Json?     // optional raw provider payload
-
+  sequence Int?
+  raw      Json?
   createdAt DateTime @default(now())
 
   @@index([entryId])
@@ -114,7 +103,6 @@ model EntryLocation {
   @@index([lat, lng])
 }
 
-// NextAuth.js models
 model Account {
   id                String  @id @default(cuid())
   userId            String

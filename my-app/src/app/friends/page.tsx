@@ -4,13 +4,24 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 
+type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
+
+type ActionTone = "neutral" | "danger" | "soft"
+
 interface UserCard {
   id: string
   username: string
   firstName: string | null
   lastName: string | null
   profilePicture: string | null
-  isFriend?: boolean
+  relationshipStatus?: RelationshipStatus
+}
+
+interface CardAction {
+  label: string
+  onClick: () => void
+  tone?: ActionTone
+  disabled?: boolean
 }
 
 function displayName(user: UserCard): string {
@@ -38,9 +49,13 @@ export default function FriendsPage() {
   const [query, setQuery] = useState("")
   const [users, setUsers] = useState<UserCard[]>([])
   const [friends, setFriends] = useState<UserCard[]>([])
+  const [blockedFriends, setBlockedFriends] = useState<UserCard[]>([])
+  const [sentRequests, setSentRequests] = useState<UserCard[]>([])
+  const [receivedRequests, setReceivedRequests] = useState<UserCard[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingFriends, setLoadingFriends] = useState(false)
-  const [addingUserId, setAddingUserId] = useState<string | null>(null)
+  const [sendingUserId, setSendingUserId] = useState<string | null>(null)
+  const [relationshipActionUserId, setRelationshipActionUserId] = useState<string | null>(null)
   const [error, setError] = useState("")
 
   const trimmedQuery = useMemo(() => query.trim(), [query])
@@ -55,9 +70,15 @@ export default function FriendsPage() {
       }
       const data = await response.json()
       setFriends(Array.isArray(data.friends) ? data.friends : [])
+      setBlockedFriends(Array.isArray(data.blockedFriends) ? data.blockedFriends : [])
+      setSentRequests(Array.isArray(data.sentRequests) ? data.sentRequests : [])
+      setReceivedRequests(Array.isArray(data.receivedRequests) ? data.receivedRequests : [])
     } catch (err: any) {
       setError(err?.message || "Failed to load friends")
       setFriends([])
+      setBlockedFriends([])
+      setSentRequests([])
+      setReceivedRequests([])
     } finally {
       setLoadingFriends(false)
     }
@@ -109,8 +130,8 @@ export default function FriendsPage() {
     }
   }, [trimmedQuery])
 
-  const addFriend = async (userId: string) => {
-    setAddingUserId(userId)
+  const sendFriendRequest = async (userId: string) => {
+    setSendingUserId(userId)
     setError("")
 
     try {
@@ -122,17 +143,77 @@ export default function FriendsPage() {
 
       const data = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(data?.error || "Failed to add friend")
+        throw new Error(data?.error || "Failed to send friend request")
       }
 
       setUsers((prev) =>
-        prev.map((user) => (user.id === userId ? { ...user, isFriend: true } : user))
+        prev.map((user) =>
+          user.id === userId ? { ...user, relationshipStatus: "outgoing_request" } : user
+        )
       )
       await fetchFriends()
     } catch (err: any) {
-      setError(err?.message || "Failed to add friend")
+      setError(err?.message || "Failed to send friend request")
     } finally {
-      setAddingUserId(null)
+      setSendingUserId(null)
+    }
+  }
+
+  const blockFriend = async (userId: string) => {
+    setRelationshipActionUserId(userId)
+    setError("")
+
+    try {
+      const response = await fetch("/api/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to block friend")
+      }
+
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, relationshipStatus: "blocked" } : user
+        )
+      )
+      await fetchFriends()
+    } catch (err: any) {
+      setError(err?.message || "Failed to block friend")
+    } finally {
+      setRelationshipActionUserId(null)
+    }
+  }
+
+  const unblockFriend = async (userId: string) => {
+    setRelationshipActionUserId(userId)
+    setError("")
+
+    try {
+      const response = await fetch("/api/blocks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to unblock friend")
+      }
+
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, relationshipStatus: "friend" } : user
+        )
+      )
+      await fetchFriends()
+    } catch (err: any) {
+      setError(err?.message || "Failed to unblock friend")
+    } finally {
+      setRelationshipActionUserId(null)
     }
   }
 
@@ -170,7 +251,7 @@ export default function FriendsPage() {
         <div className="px-4 sm:px-0 space-y-6">
           <div className="panel-soft p-6">
             <label htmlFor="user-search" className="block text-sm font-medium text-[#1a4d3e] mb-2">
-              Search people to add as friends
+              Search people to send a friend request
             </label>
             <input
               id="user-search"
@@ -220,18 +301,8 @@ export default function FriendsPage() {
                           <p className="text-sm text-[#1a4d3e]/70">@{user.username}</p>
                         </div>
                       </div>
-                      {user.isFriend ? (
-                        <span className="rounded-xl bg-[#52C9A2]/20 px-3 py-1.5 text-sm font-medium text-[#1a4d3e]">
-                          My Friends
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => addFriend(user.id)}
-                          disabled={addingUserId === user.id}
-                          className="rounded-xl bg-[#4A90E2] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#3E82CC] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {addingUserId === user.id ? "Adding..." : "Add Friend"}
-                        </button>
+                      {renderRelationshipAction(user.relationshipStatus, sendingUserId === user.id, () =>
+                        sendFriendRequest(user.id)
                       )}
                     </div>
                   ))}
@@ -240,42 +311,220 @@ export default function FriendsPage() {
             </>
           )}
 
-          <div className="panel-soft p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#1a4d3e]">Your Friends</h2>
-              <span className="text-sm text-[#1a4d3e]/70">{friends.length}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.6fr] gap-5 items-start">
+            <div className="space-y-4 lg:max-w-sm">
+              <div className="panel-soft p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-[#1a4d3e]">Requests I Received</h2>
+                  <span className="text-xs text-[#1a4d3e]/70">{receivedRequests.length}</span>
+                </div>
+
+                {loadingFriends ? (
+                  <div className="text-sm text-[#1a4d3e]/80">Loading requests...</div>
+                ) : receivedRequests.length === 0 ? (
+                  <div className="text-sm text-[#1a4d3e]/80">You have no incoming friend requests.</div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {receivedRequests.map((user) => (
+                      <RelationshipCard key={user.id} user={user} badge="Request Received" compact />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="panel-soft p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-[#1a4d3e]">Requests I Sent</h2>
+                  <span className="text-xs text-[#1a4d3e]/70">{sentRequests.length}</span>
+                </div>
+
+                {loadingFriends ? (
+                  <div className="text-sm text-[#1a4d3e]/80">Loading requests...</div>
+                ) : sentRequests.length === 0 ? (
+                  <div className="text-sm text-[#1a4d3e]/80">You have not sent any friend requests yet.</div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {sentRequests.map((user) => (
+                      <RelationshipCard key={user.id} user={user} badge="Request Sent" compact />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="panel-soft p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-[#1a4d3e]">Blocked</h2>
+                  <span className="text-xs text-[#1a4d3e]/70">{blockedFriends.length}</span>
+                </div>
+
+                {loadingFriends ? (
+                  <div className="text-sm text-[#1a4d3e]/80">Loading blocked users...</div>
+                ) : blockedFriends.length === 0 ? (
+                  <div className="text-sm text-[#1a4d3e]/80">No friends are blocked right now.</div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {blockedFriends.map((user) => (
+                      <RelationshipCard
+                        key={user.id}
+                        user={user}
+                        badge="Blocked"
+                        compact
+                        action={{
+                          label: relationshipActionUserId === user.id ? "Unblocking..." : "Unblock",
+                          onClick: () => unblockFriend(user.id),
+                          tone: "soft",
+                          disabled: relationshipActionUserId === user.id,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {loadingFriends ? (
-              <div className="text-[#1a4d3e]/80">Loading friends...</div>
-            ) : friends.length === 0 ? (
-              <div className="text-[#1a4d3e]/80">You have no friends added yet.</div>
-            ) : (
-              <div className="space-y-3">
-                {friends.map((friend) => (
-                  <div key={friend.id} className="rounded-2xl bg-white/50 p-3 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden">
-                      {friend.profilePicture ? (
-                        <img
-                          src={friend.profilePicture}
-                          alt={displayName(friend)}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{initials(friend)}</span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[#1a4d3e]">{displayName(friend)}</p>
-                      <p className="text-sm text-[#1a4d3e]/70">@{friend.username}</p>
-                    </div>
-                  </div>
-                ))}
+            <div className="panel-soft p-6 lg:p-7">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-[#1a4d3e]">My Friends</h2>
+                <span className="text-sm text-[#1a4d3e]/70">{friends.length}</span>
               </div>
-            )}
+
+              {loadingFriends ? (
+                <div className="text-[#1a4d3e]/80">Loading friends...</div>
+              ) : friends.length === 0 ? (
+                <div className="text-[#1a4d3e]/80">You have no friends added yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {friends.map((friend) => (
+                    <RelationshipCard
+                      key={friend.id}
+                      user={friend}
+                      action={{
+                        label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
+                        onClick: () => blockFriend(friend.id),
+                        tone: "danger",
+                        disabled: relationshipActionUserId === friend.id,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
     </div>
   )
+}
+
+function renderRelationshipAction(
+  status: RelationshipStatus | undefined,
+  isSending: boolean,
+  onSend: () => void
+) {
+  if (status === "blocked") {
+    return (
+      <span className="rounded-xl bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700">
+        Blocked
+      </span>
+    )
+  }
+
+  if (status === "friend") {
+    return (
+      <span className="rounded-xl bg-[#52C9A2]/20 px-3 py-1.5 text-sm font-medium text-[#1a4d3e]">
+        My Friend
+      </span>
+    )
+  }
+
+  if (status === "outgoing_request") {
+    return (
+      <span className="rounded-xl bg-[#F5C26B]/25 px-3 py-1.5 text-sm font-medium text-[#7A4B00]">
+        Request Sent
+      </span>
+    )
+  }
+
+  if (status === "incoming_request") {
+    return (
+      <span className="rounded-xl bg-[#4A90E2]/15 px-3 py-1.5 text-sm font-medium text-[#1a4d3e]">
+        Request Received
+      </span>
+    )
+  }
+
+  return (
+    <button
+      onClick={onSend}
+      disabled={isSending}
+      className="rounded-xl bg-[#4A90E2] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#3E82CC] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {isSending ? "Sending..." : "Send Request"}
+    </button>
+  )
+}
+
+function RelationshipCard({
+  user,
+  badge,
+  compact = false,
+  action,
+}: {
+  user: UserCard
+  badge?: string
+  compact?: boolean
+  action?: CardAction
+}) {
+  return (
+    <div className={`rounded-2xl bg-white/50 flex items-center justify-between gap-3 ${compact ? "p-2.5" : "p-3"}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
+          {user.profilePicture ? (
+            <img
+              src={user.profilePicture}
+              alt={displayName(user)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{initials(user)}</span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className={`${compact ? "text-sm" : "text-base"} font-semibold text-[#1a4d3e] truncate`}>{displayName(user)}</p>
+          <p className={`${compact ? "text-xs" : "text-sm"} text-[#1a4d3e]/70 truncate`}>@{user.username}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {badge ? (
+          <span className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-sm"} rounded-xl bg-white/70 font-medium text-[#1a4d3e]`}>
+            {badge}
+          </span>
+        ) : null}
+        {action ? (
+          <button
+            onClick={action.onClick}
+            disabled={action.disabled}
+            className={getActionClassName(action.tone || "neutral", compact, Boolean(action.disabled))}
+          >
+            {action.label}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function getActionClassName(tone: ActionTone, compact: boolean, disabled: boolean) {
+  const size = compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-sm"
+  const disabledState = disabled ? " opacity-60 cursor-not-allowed" : ""
+
+  if (tone === "danger") {
+    return `rounded-xl bg-red-100 ${size} font-medium text-red-700 hover:bg-red-200 transition-all${disabledState}`
+  }
+
+  if (tone === "soft") {
+    return `rounded-xl bg-[#4A90E2]/15 ${size} font-medium text-[#1a4d3e] hover:bg-[#4A90E2]/25 transition-all${disabledState}`
+  }
+
+  return `rounded-xl glass ${size} font-medium text-[#1a4d3e] hover:bg-white/40 transition-all${disabledState}`
 }
