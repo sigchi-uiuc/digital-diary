@@ -8,6 +8,7 @@ import ProfileDropdown from "@/components/ProfileDropdown"
 import CalendarEvents from "@/components/CalendarEvents"
 import WeatherDisplay from "@/components/WeatherDisplay"
 import DiaryCalendarPopup from "@/components/DiaryCalendar"
+import RecentFriendEntries from "@/components/RecentFriendEntries"
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -114,7 +115,6 @@ export default function Home() {
       <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Left Column - Journal Entries */}
             <div>
               <div className="mb-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -130,9 +130,9 @@ export default function Home() {
                 </div>
               </div>
               <EntriesList />
+              <RecentFriendEntries />
             </div>
 
-            {/* Right Column - Calendar Events */}
             <div className="space-y-8">
               <CalendarEvents />
               <div className="bg-white rounded-lg shadow p-4">

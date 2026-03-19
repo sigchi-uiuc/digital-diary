@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
+import RecentFriendEntries from "@/components/RecentFriendEntries"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
 
@@ -382,33 +383,37 @@ export default function FriendsPage() {
               </div>
             </div>
 
-            <div className="panel-soft p-6 lg:p-7">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-semibold text-[#1a4d3e]">My Friends</h2>
-                <span className="text-sm text-[#1a4d3e]/70">{friends.length}</span>
+            <div className="space-y-6">
+              <div className="panel-soft p-6 lg:p-7">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-semibold text-[#1a4d3e]">My Friends</h2>
+                  <span className="text-sm text-[#1a4d3e]/70">{friends.length}</span>
+                </div>
+
+                {loadingFriends ? (
+                  <div className="text-[#1a4d3e]/80">Loading friends...</div>
+                ) : friends.length === 0 ? (
+                  <div className="text-[#1a4d3e]/80">You have no friends added yet.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {friends.map((friend) => (
+                      <RelationshipCard
+                        key={friend.id}
+                        user={friend}
+                        href={`/friends/${friend.id}`}
+                        action={{
+                          label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
+                          onClick: () => blockFriend(friend.id),
+                          tone: "danger",
+                          disabled: relationshipActionUserId === friend.id,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {loadingFriends ? (
-                <div className="text-[#1a4d3e]/80">Loading friends...</div>
-              ) : friends.length === 0 ? (
-                <div className="text-[#1a4d3e]/80">You have no friends added yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {friends.map((friend) => (
-                    <RelationshipCard
-                      key={friend.id}
-                      user={friend}
-                      href={`/friends/${friend.id}`}
-                      action={{
-                        label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
-                        onClick: () => blockFriend(friend.id),
-                        tone: "danger",
-                        disabled: relationshipActionUserId === friend.id,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              <RecentFriendEntries />
             </div>
           </div>
         </div>
