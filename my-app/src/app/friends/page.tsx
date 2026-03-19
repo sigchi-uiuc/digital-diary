@@ -24,7 +24,7 @@ interface CardAction {
   disabled?: boolean
 }
 
-function displayName(user: UserCard): string {
+function displayName(user: UserCard) {
   const first = user.firstName?.trim()
   const last = user.lastName?.trim()
 
@@ -34,7 +34,7 @@ function displayName(user: UserCard): string {
   return user.username
 }
 
-function initials(user: UserCard): string {
+function initials(user: UserCard) {
   const first = user.firstName?.trim()
   const last = user.lastName?.trim()
 
@@ -398,6 +398,7 @@ export default function FriendsPage() {
                     <RelationshipCard
                       key={friend.id}
                       user={friend}
+                      href={`/friends/${friend.id}`}
                       action={{
                         label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
                         onClick: () => blockFriend(friend.id),
@@ -469,14 +470,16 @@ function RelationshipCard({
   badge,
   compact = false,
   action,
+  href,
 }: {
   user: UserCard
   badge?: string
   compact?: boolean
   action?: CardAction
+  href?: string
 }) {
-  return (
-    <div className={`rounded-2xl bg-white/50 flex items-center justify-between gap-3 ${compact ? "p-2.5" : "p-3"}`}>
+  const content = (
+    <>
       <div className="flex items-center gap-3 min-w-0">
         <div className={`${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
           {user.profilePicture ? (
@@ -502,7 +505,11 @@ function RelationshipCard({
         ) : null}
         {action ? (
           <button
-            onClick={action.onClick}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              action.onClick()
+            }}
             disabled={action.disabled}
             className={getActionClassName(action.tone || "neutral", compact, Boolean(action.disabled))}
           >
@@ -510,6 +517,20 @@ function RelationshipCard({
           </button>
         ) : null}
       </div>
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} className={`rounded-2xl bg-white/50 flex items-center justify-between gap-3 hover:bg-white/70 transition-all ${compact ? "p-2.5" : "p-3"}`}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div className={`rounded-2xl bg-white/50 flex items-center justify-between gap-3 ${compact ? "p-2.5" : "p-3"}`}>
+      {content}
     </div>
   )
 }
