@@ -413,7 +413,7 @@ export default function FriendsPage() {
                 )}
               </div>
 
-              <RecentFriendEntries />
+              <RecentFriendEntries variant="friends" />
             </div>
           </div>
         </div>

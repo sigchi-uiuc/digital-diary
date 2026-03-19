@@ -130,7 +130,7 @@ export default function Home() {
                 </div>
               </div>
               <EntriesList />
-              <RecentFriendEntries />
+              <RecentFriendEntries variant="home" />
             </div>
 
             <div className="space-y-8">
