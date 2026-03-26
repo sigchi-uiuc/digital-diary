@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import MediaUpload from "@/components/MediaUpload"
+import SpeechText from "@/components/SpeechText"
 import { createEntry } from "@/lib/actions/entries"
 
 const emojiOptions = [
@@ -136,6 +137,16 @@ export default function CreateFreewriteEntry() {
                       <span className="text-xs text-[#1a4d3e]/70">{option.label}</span>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Media Upload */}
+              {/* Record Audio */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a4d3e] mb-2">Record Audio</label>
+                <div className="panel-soft p-3 rounded-md">
+                  <SpeechText />
+                  <p className="mt-2 text-xs text-[#1a4d3e]/60">Record and playback audio for this entry. Download the file if you want to attach it.</p>
                 </div>
               </div>
 
