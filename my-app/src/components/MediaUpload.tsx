@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { uploadMedia } from "@/lib/actions/media"
 
 interface MediaUploadProps {
   mediaUrls: string[]
@@ -30,18 +31,8 @@ export default function MediaUpload({ mediaUrls, onMediaChange, maxFiles = 10 }:
         const formData = new FormData()
         formData.append("media", file)
 
-        const response = await fetch("/api/media/upload", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || "Failed to upload file")
-        }
-
-        const data = await response.json()
-        return data.url
+        const result = await uploadMedia(formData)
+        return result.url
       })
 
       const newUrls = await Promise.all(uploadPromises)

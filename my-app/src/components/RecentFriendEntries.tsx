@@ -1,8 +1,4 @@
-"use client"
-
-import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 
 interface FriendEntry {
   id: string
@@ -10,7 +6,7 @@ interface FriendEntry {
   content: string | null
   qualityEmoji: string | null
   mediaUrls: string[]
-  createdAt: string
+  createdAt: Date | string
   user: {
     id: string
     username: string
@@ -18,6 +14,11 @@ interface FriendEntry {
     lastName: string | null
     profilePicture: string | null
   }
+}
+
+interface Props {
+  variant: "home" | "friends"
+  initialEntries: FriendEntry[]
 }
 
 function displayName(user: FriendEntry["user"]) {
@@ -38,58 +39,32 @@ function initials(user: FriendEntry["user"]) {
   return user.username[0]?.toUpperCase() || "U"
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", {
+function formatDate(d: Date | string) {
+  return new Date(d).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   })
 }
 
-export default function RecentFriendEntries({ variant }: { variant: "home" | "friends" }) {
-  const { data: session } = useSession()
-  const [entries, setEntries] = useState<FriendEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  useEffect(() => {
-    if (!session) return
-    fetch("/api/friends/entries")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch")
-        return res.json()
-      })
-      .then((data) => setEntries(Array.isArray(data.entries) ? data.entries : []))
-      .catch(() => setError("Failed to load friend entries"))
-      .finally(() => setLoading(false))
-  }, [session])
-
-  const title = "Recent Friend Entries"
+export default function RecentFriendEntries({ variant, initialEntries }: Props) {
   const limit = variant === "home" ? 3 : 5
+  const entries = initialEntries.slice(0, limit)
 
   return (
     <div className={`panel-soft p-5 ${variant === "home" ? "mt-6" : ""}`}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-[#1a4d3e]">{title}</h2>
-        {entries.length > 0 && (
-          <span className="text-xs text-[#1a4d3e]/60">{entries.length} public entries</span>
+        <h2 className="text-lg font-semibold text-[#1a4d3e]">Recent Friend Entries</h2>
+        {initialEntries.length > 0 && (
+          <span className="text-xs text-[#1a4d3e]/60">{initialEntries.length} public entries</span>
         )}
       </div>
 
-      {loading ? (
-        <div className="flex items-center gap-3 py-4 text-[#1a4d3e]/70 text-sm">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#4A90E2] border-t-transparent" />
-          Loading...
-        </div>
-      ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
-      ) : entries.length === 0 ? (
-        <p className="text-sm text-[#1a4d3e]/70">
-          No public entries from friends yet.
-        </p>
+      {entries.length === 0 ? (
+        <p className="text-sm text-[#1a4d3e]/70">No public entries from friends yet.</p>
       ) : (
         <div className="space-y-3">
-          {entries.slice(0, limit).map((entry) => (
+          {entries.map((entry) => (
             <Link
               key={entry.id}
               href={`/friends/${entry.user.id}`}
@@ -97,11 +72,7 @@ export default function RecentFriendEntries({ variant }: { variant: "home" | "fr
             >
               <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0">
                 {entry.user.profilePicture ? (
-                  <img
-                    src={entry.user.profilePicture}
-                    alt={displayName(entry.user)}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={entry.user.profilePicture} alt={displayName(entry.user)} className="w-full h-full object-cover" />
                 ) : (
                   <span>{initials(entry.user)}</span>
                 )}
@@ -109,9 +80,7 @@ export default function RecentFriendEntries({ variant }: { variant: "home" | "fr
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-sm font-semibold text-[#1a4d3e] truncate">
-                    {displayName(entry.user)}
-                  </span>
+                  <span className="text-sm font-semibold text-[#1a4d3e] truncate">{displayName(entry.user)}</span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                     entry.type === "FREEWRITE"
                       ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white"
@@ -119,15 +88,9 @@ export default function RecentFriendEntries({ variant }: { variant: "home" | "fr
                   }`}>
                     {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
                   </span>
-                  {entry.qualityEmoji && (
-                    <span className="text-base leading-none">{entry.qualityEmoji}</span>
-                  )}
+                  {entry.qualityEmoji && <span className="text-base leading-none">{entry.qualityEmoji}</span>}
                 </div>
-
-                <p className="text-xs text-[#1a4d3e]/80 line-clamp-2 mb-1">
-                  {entry.content || "No content"}
-                </p>
-
+                <p className="text-xs text-[#1a4d3e]/80 line-clamp-2 mb-1">{entry.content || "No content"}</p>
                 <span className="text-[11px] text-[#1a4d3e]/50">{formatDate(entry.createdAt)}</span>
               </div>
             </Link>

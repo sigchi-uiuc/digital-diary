@@ -1,8 +1,6 @@
-"use client"
-
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
+import EntryDeleteButton from "@/components/EntryDeleteButton"
+import CreateEntryDropdown from "@/components/CreateEntryDropdown"
 
 interface Entry {
   id: string
@@ -11,105 +9,68 @@ interface Entry {
   visibility: "PRIVATE" | "PUBLIC" | "PROTECTED"
   qualityEmoji: string | null
   mediaUrls: string[]
-  createdAt: string
-  updatedAt: string
+  createdAt: Date
+  updatedAt: Date
 }
 
-export default function EntriesList() {
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const { data: session } = useSession()
+interface Props {
+  entries: Entry[]
+}
 
-  useEffect(() => {
-    if (session) {
-      fetchEntries()
-    }
-  }, [session])
+function formatDate(d: Date) {
+  return new Date(d).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
 
-  const fetchEntries = async () => {
-    try {
-      const response = await fetch("/api/entries")
-      if (!response.ok) {
-        throw new Error("Failed to fetch entries")
-      }
-      const data = await response.json()
-      setEntries(data)
-    } catch (error) {
-      setError("Failed to load entries")
-      console.error("Error fetching entries:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+function relativeTime(d: Date) {
+  const now = Date.now()
+  const diff = now - new Date(d).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
 
-  const deleteEntry = async (entryId: string) => {
-    if (!confirm("Are you sure you want to delete this entry?")) {
-      return
-    }
+  if (minutes < 1) return "Just now"
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} days ago`
+  return formatDate(d)
+}
 
-    try {
-      const response = await fetch(`/api/entries/${entryId}`, {
-        method: "DELETE"
-      })
+function wordCount(content: string | null) {
+  if (!content) return 0
+  return content.trim().split(/\s+/).filter(Boolean).length
+}
 
-      if (!response.ok) {
-        throw new Error("Failed to delete entry")
-      }
-
-      setEntries(entries.filter(entry => entry.id !== entryId))
-    } catch (error) {
-      setError("Failed to delete entry")
-      console.error("Error deleting entry:", error)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    })
-  }
-
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="glass-strong rounded-3xl px-8 py-6">
-          <div className="flex items-center space-x-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#4A90E2] border-t-transparent"></div>
-            <div className="text-[#1a4d3e] font-medium">Loading entries...</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="glass-strong rounded-3xl p-6 border-2 border-red-200/50">
-        <p className="text-red-700 font-medium mb-4">{error}</p>
-        <button
-          onClick={fetchEntries}
-          className="btn-glossy rounded-2xl px-4 py-2 text-sm text-white"
-        >
-          Try again
-        </button>
-      </div>
-    )
-  }
-
+export default function EntriesList({ entries }: Props) {
   if (entries.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="panel-soft p-12 max-w-md mx-auto">
           <div className="text-7xl mb-6">📝</div>
           <h3 className="text-2xl font-bold text-[#1a4d3e] mb-3">No entries yet</h3>
-          <p className="text-[#1a4d3e]/70">Start your digital diary journey by creating your first entry.</p>
+          <p className="text-[#1a4d3e]/70 mb-8">
+            Start your digital diary journey by creating your first entry.
+          </p>
+          <div className="flex justify-center gap-3">
+            <Link
+              href="/entries/create/freewrite"
+              className="btn-glossy rounded-2xl px-5 py-2.5 text-white font-medium text-sm"
+            >
+              Freewrite
+            </Link>
+            <Link
+              href="/entries/create/guided"
+              className="btn-glossy-green rounded-2xl px-5 py-2.5 text-white font-medium text-sm"
+            >
+              Guided
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -118,12 +79,12 @@ export default function EntriesList() {
   return (
     <div className="space-y-5">
       {entries.map((entry) => (
-        <div key={entry.id} className="panel-soft hover:scale-[1.02] transition-all duration-300 droplet">
+        <div key={entry.id} className="panel-soft hover:scale-[1.01] transition-all duration-300 droplet">
           <Link href={`/entries/${entry.id}`} className="block p-6">
             <div className="flex items-center space-x-3 mb-3">
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                entry.type === "FREEWRITE" 
-                  ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg" 
+                entry.type === "FREEWRITE"
+                  ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
                   : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
               }`}>
                 {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
@@ -137,36 +98,28 @@ export default function EntriesList() {
               }`}>
                 {entry.visibility.toLowerCase()}
               </span>
-              {entry.qualityEmoji && (
-                <span className="text-2xl">{entry.qualityEmoji}</span>
-              )}
+              {entry.qualityEmoji && <span className="text-2xl">{entry.qualityEmoji}</span>}
             </div>
-            
-            <h3 className="text-xl font-bold text-[#1a4d3e] mb-3">
-              Entry from {formatDate(entry.createdAt)}
+
+            <div className="mb-1">
+              <span className="text-xs font-semibold text-[#4A90E2]">{relativeTime(entry.createdAt)}</span>
+            </div>
+            <h3 className="text-base font-semibold text-[#1a4d3e]/70 mb-3 text-sm">
+              {formatDate(entry.createdAt)}
             </h3>
-            
+
             <p className="text-[#1a4d3e]/80 text-sm mb-4 line-clamp-3">
               {entry.content || "No content"}
             </p>
-            
-            {/* Media preview */}
+
             {entry.mediaUrls && entry.mediaUrls.length > 0 && (
               <div className="flex gap-2 mb-4">
                 {entry.mediaUrls.slice(0, 3).map((url, index) => {
                   const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
                   return isImage ? (
-                    <img
-                      key={index}
-                      src={url}
-                      alt={`Preview ${index + 1}`}
-                      className="w-16 h-16 object-cover rounded-lg border border-[#1a4d3e]/20"
-                    />
+                    <img key={index} src={url} alt={`Preview ${index + 1}`} className="w-16 h-16 object-cover rounded-lg border border-[#1a4d3e]/20" />
                   ) : (
-                    <div
-                      key={index}
-                      className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center"
-                    >
+                    <div key={index} className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center">
                       <span className="text-xs">🎥</span>
                     </div>
                   )
@@ -178,19 +131,18 @@ export default function EntriesList() {
                 )}
               </div>
             )}
-            
-            <div className="flex items-center text-xs text-[#1a4d3e]/60">
-              <span>Created: {formatDate(entry.createdAt)}</span>
-              {entry.updatedAt !== entry.createdAt && (
+
+            <div className="flex items-center text-xs text-[#1a4d3e]/50 gap-2">
+              <span>{wordCount(entry.content)} words</span>
+              {entry.updatedAt.toISOString() !== entry.createdAt.toISOString() && (
                 <>
-                  <span className="mx-2">•</span>
-                  <span>Updated: {formatDate(entry.updatedAt)}</span>
+                  <span>•</span>
+                  <span>Edited {relativeTime(entry.updatedAt)}</span>
                 </>
               )}
             </div>
           </Link>
-          
-          {/* Action buttons - positioned outside the clickable area */}
+
           <div className="px-6 pb-6 flex items-center justify-end space-x-3">
             <Link
               href={`/entries/${entry.id}/edit`}
@@ -198,15 +150,7 @@ export default function EntriesList() {
             >
               Edit
             </Link>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                deleteEntry(entry.id)
-              }}
-              className="glass rounded-xl px-4 py-2 text-red-600 hover:bg-red-50/40 transition-all text-sm font-medium"
-            >
-              Delete
-            </button>
+            <EntryDeleteButton entryId={entry.id} />
           </div>
         </div>
       ))}

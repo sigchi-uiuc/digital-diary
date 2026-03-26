@@ -178,6 +178,30 @@ body::before {
   overflow: hidden;
 }
 
+/* Glass input utility */
+.input-glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  color: #1a4d3e;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.input-glass:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(74, 144, 226, 0.5);
+}
+
+.input-glass::placeholder {
+  color: rgba(26, 77, 62, 0.4);
+}
+
+.input-glass:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;
