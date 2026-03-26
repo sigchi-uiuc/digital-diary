@@ -64,6 +64,22 @@ export default function EntriesList() {
     }
   }
 
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/^#{1,6}\s+/gm, "")       // headings
+      .replace(/\*\*(.+?)\*\*/g, "$1")    // bold
+      .replace(/\*(.+?)\*/g, "$1")        // italic
+      .replace(/~~(.+?)~~/g, "$1")        // strikethrough
+      .replace(/`(.+?)`/g, "$1")          // inline code
+      .replace(/\[(.+?)\]\(.+?\)/g, "$1") // links
+      .replace(/!\[.*?\]\(.+?\)/g, "")    // images
+      .replace(/^>\s+/gm, "")             // blockquotes
+      .replace(/^[-*+]\s+/gm, "")         // unordered lists
+      .replace(/^\d+\.\s+/gm, "")         // ordered lists
+      .replace(/\n{2,}/g, " ")            // multiple newlines
+      .trim()
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("en-US", {
@@ -147,7 +163,7 @@ export default function EntriesList() {
             </h3>
             
             <p className="text-[#1a4d3e]/80 text-sm mb-4 line-clamp-3">
-              {entry.content || "No content"}
+              {entry.content ? stripMarkdown(entry.content) : "No content"}
             </p>
             
             {/* Media preview */}

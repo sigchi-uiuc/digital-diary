@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeSanitize from "rehype-sanitize"
 
 interface Entry {
   id: string
@@ -168,12 +171,13 @@ export default function ViewEntry() {
             {/* Content */}
             <div className="px-6 py-6">
               {entry.content ? (
-                <div className="prose prose-gray max-w-none">
-                  {entry.type === "GUIDED" ? (
-                    <div className="whitespace-pre-wrap">{entry.content}</div>
-                  ) : (
-                    <p className="whitespace-pre-wrap">{entry.content}</p>
-                  )}
+                <div className="prose prose-gray max-w-none text-[#1a4d3e]">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]} 
+                    rehypePlugins={[rehypeSanitize]}
+                  >
+                    {entry.content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">

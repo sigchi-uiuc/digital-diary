@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import MediaUpload from "@/components/MediaUpload"
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
+
 
 export default function CreateFreewriteEntry() {
   const [content, setContent] = useState("")
@@ -117,15 +121,14 @@ export default function CreateFreewriteEntry() {
                 <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
                   What's on your mind?
                 </label>
-                <textarea
-                  id="content"
-                  rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Start writing about anything that comes to mind... your thoughts, feelings, experiences, dreams, or just stream of consciousness..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  required
-                />
+                <div data-color-mode="light">
+                  <MDEditor
+                    value={content}
+                    onChange={(val) => setContent(val || "")}
+                    height={400}
+                    className="w-full border border-gray-300 rounded-md shadow-sm focus-within:ring-1 focus-within:ring-indigo-500 focus-within:border-indigo-500"
+                  />
+                </div>
                 <p className="mt-1 text-xs text-gray-500">
                   {content.length} characters
                 </p>
