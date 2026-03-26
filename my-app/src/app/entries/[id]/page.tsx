@@ -1,168 +1,96 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import { getServerSession } from "next-auth/next"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeSanitize from "rehype-sanitize"
+import { authOptions } from "@/lib/auth"
+import { getEntry } from "@/lib/actions/entries"
+import MediaViewer from "@/components/MediaViewer"
 
-interface Entry {
-  id: string
-  type: "FREEWRITE" | "GUIDED"
-  content: string | null
-  visibility: "PRIVATE" | "PUBLIC" | "PROTECTED"
-  qualityEmoji: string | null
-  mediaUrls: string[]
-  createdAt: string
-  updatedAt: string
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
-export default function ViewEntry() {
-  const params = useParams()
-  const router = useRouter()
-  const [entry, setEntry] = useState<Entry | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+export default async function ViewEntry({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const session = await getServerSession(authOptions)
+  if (!session) redirect("/auth/signin")
 
-  useEffect(() => {
-    if (params.id) {
-      fetchEntry(params.id as string)
-    }
-  }, [params.id])
+  const { id } = await params
+  const entry = await getEntry(id)
 
-  const fetchEntry = async (entryId: string) => {
-    try {
-      const response = await fetch(`/api/entries/${entryId}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch entry")
-      }
-      const data = await response.json()
-      setEntry(data)
-    } catch (error) {
-      setError("Failed to load entry")
-      console.error("Error fetching entry:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    })
-  }
-
-  const getEntryTypeColor = (type: string) => {
-    return type === "FREEWRITE" 
-      ? "bg-blue-100 text-blue-800" 
-      : "bg-green-100 text-green-800"
-  }
-
-  const getVisibilityColor = (visibility: string) => {
-    switch (visibility) {
-      case "PUBLIC":
-        return "bg-green-100 text-green-800"
-      case "PROTECTED":
-        return "bg-yellow-100 text-yellow-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    )
-  }
-
-  if (error || !entry) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex items-center">
-                <Link href="/" className="text-xl font-semibold text-gray-900 hover:text-indigo-600">
-                  ← Digital Diary
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
-        <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <div className="text-red-600 text-6xl mb-4">⚠️</div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Entry Not Found</h2>
-              <p className="text-gray-600 mb-4">{error || "This entry doesn't exist or you don't have permission to view it."}</p>
-              <Link
-                href="/"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Back to Entries
-              </Link>
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
+  if (!entry) notFound()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen relative z-10">
+      <nav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-semibold text-gray-900 hover:text-indigo-600">
-                ← Digital Diary
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href={`/entries/${entry.id}/edit`}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              >
-                Edit
-              </Link>
-            </div>
+          <div className="flex justify-between h-16 items-center">
+            <Link
+              href="/"
+              className="glass rounded-2xl px-4 py-2 text-sm font-medium text-[#1a4d3e] hover:bg-white/40 transition-all"
+            >
+              ← Digital Diary
+            </Link>
+            <Link
+              href={`/entries/${entry.id}/edit`}
+              className="glass rounded-2xl px-4 py-2 text-sm font-medium text-[#4A90E2] hover:bg-white/40 transition-all"
+            >
+              Edit
+            </Link>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-0">
+          <div className="panel-soft overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEntryTypeColor(entry.type)}`}>
+            <div className="px-6 py-5 border-b border-white/20">
+              <div className="flex items-center space-x-2 mb-3">
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                    entry.type === "FREEWRITE"
+                      ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
+                      : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
+                  }`}
+                >
                   {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
                 </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getVisibilityColor(entry.visibility)}`}>
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                    entry.visibility === "PUBLIC"
+                      ? "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white"
+                      : entry.visibility === "PROTECTED"
+                      ? "bg-gradient-to-r from-[#FFD93D] to-[#FFE66D] text-[#1a4d3e]"
+                      : "glass text-[#1a4d3e]"
+                  }`}
+                >
                   {entry.visibility.toLowerCase()}
                 </span>
                 {entry.qualityEmoji && (
-                  <span className="text-lg">{entry.qualityEmoji}</span>
+                  <span className="text-xl">{entry.qualityEmoji}</span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Entry from {formatDate(entry.createdAt)}
+              <h1 className="text-2xl font-bold text-[#1a4d3e]">
+                Entry from {formatDate(entry.createdAt.toISOString())}
               </h1>
-              <div className="mt-2 text-sm text-gray-500">
-                <span>Created: {formatDate(entry.createdAt)}</span>
-                {entry.updatedAt !== entry.createdAt && (
+              <div className="mt-2 text-sm text-[#1a4d3e]/60 flex items-center gap-2 flex-wrap">
+                <span>Created: {formatDate(entry.createdAt.toISOString())}</span>
+                {entry.updatedAt.toISOString() !== entry.createdAt.toISOString() && (
                   <>
-                    <span className="mx-2">•</span>
-                    <span>Updated: {formatDate(entry.updatedAt)}</span>
+                    <span>•</span>
+                    <span>Updated: {formatDate(entry.updatedAt.toISOString())}</span>
                   </>
                 )}
               </div>
@@ -171,7 +99,7 @@ export default function ViewEntry() {
             {/* Content */}
             <div className="px-6 py-6">
               {entry.content ? (
-                <div className="prose prose-gray max-w-none text-[#1a4d3e]">
+                <div className="prose max-w-none text-[#1a4d3e]">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]} 
                     rehypePlugins={[rehypeSanitize]}
@@ -180,50 +108,13 @@ export default function ViewEntry() {
                   </ReactMarkdown>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-[#1a4d3e]/50">
                   <div className="text-4xl mb-2">📝</div>
                   <p>No content available for this entry.</p>
                 </div>
               )}
 
-              {/* Media */}
-              {entry.mediaUrls && entry.mediaUrls.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Media</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {entry.mediaUrls.map((url, index) => {
-                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-                      const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url)
-                      
-                      return (
-                        <div key={index} className="relative group">
-                          {isImage ? (
-                            <img
-                              src={url}
-                              alt={`Media ${index + 1}`}
-                              className="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                              onClick={() => window.open(url, '_blank')}
-                            />
-                          ) : isVideo ? (
-                            <video
-                              src={url}
-                              className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                              controls
-                              preload="metadata"
-                            >
-                              Your browser does not support the video tag.
-                            </video>
-                          ) : (
-                            <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                              <span className="text-gray-400 text-sm">Media</span>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+              <MediaViewer mediaUrls={entry.mediaUrls} />
             </div>
           </div>
         </div>
