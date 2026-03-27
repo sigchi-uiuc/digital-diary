@@ -134,6 +134,63 @@ export async function getFriendEntries() {
   })
 }
 
+export async function getFriendProfile(friendId: string) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const viewerId = session.user.id
+  const targetId = friendId.trim()
+
+  if (!targetId) throw new Error("Missing friendId")
+  if (targetId === viewerId) throw new Error("Use your profile page to view your own profile")
+
+  const [viewer, blockedIdsList] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: viewerId },
+      select: {
+        friends: { where: { id: targetId }, select: { id: true } },
+        friendsOf: { where: { id: targetId }, select: { id: true } },
+      },
+    }),
+    loadBlockedIds(viewerId),
+  ])
+
+  const isFriend = Boolean(viewer?.friends.length && viewer?.friendsOf.length)
+  const isBlocked = blockedIdsList.includes(targetId)
+
+  if (!isFriend || isBlocked) return null
+
+  return prisma.user.findUnique({
+    where: { id: targetId },
+    select: {
+      id: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      profilePicture: true,
+      createdAt: true,
+      publicEntriesCount: true,
+      protectedEntriesCount: true,
+      entries: {
+        where: {
+          OR: [{ visibility: "PUBLIC" }, { visibility: "PROTECTED" }],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          type: true,
+          visibility: true,
+          content: true,
+          qualityEmoji: true,
+          mediaUrls: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+}
+
 export async function sendFriendRequest(targetUserId: string) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) throw new Error("Unauthorized")
