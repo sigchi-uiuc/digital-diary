@@ -1,8 +1,7 @@
 "use server"
 
-import { getServerSession } from "next-auth/next"
 import { revalidatePath } from "next/cache"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
@@ -43,7 +42,7 @@ function getRelationshipStatus(
 }
 
 export async function getFriends() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const [user, blockedIdsList] = await Promise.all([
@@ -80,7 +79,7 @@ export async function getFriends() {
 }
 
 export async function getFriendEntries() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const userId = session.user.id
@@ -135,7 +134,7 @@ export async function getFriendEntries() {
 }
 
 export async function getFriendProfile(friendId: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const viewerId = session.user.id
@@ -192,7 +191,7 @@ export async function getFriendProfile(friendId: string) {
 }
 
 export async function sendFriendRequest(targetUserId: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   if (!targetUserId?.trim()) throw new Error("Missing userId")
@@ -230,8 +229,45 @@ export async function sendFriendRequest(targetUserId: string) {
   return { success: true, status: "outgoing_request" }
 }
 
+export async function acceptFriendRequest(targetUserId: string) {
+  const session = await getAppSession()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  if (!targetUserId?.trim()) throw new Error("Missing userId")
+  if (targetUserId === session.user.id) throw new Error("You cannot accept your own friend request")
+
+  const [currentUser, targetUser, blockedIdsList] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        friends: { where: { id: targetUserId }, select: { id: true } },
+        friendsOf: { where: { id: targetUserId }, select: { id: true } },
+      },
+    }),
+    prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } }),
+    loadBlockedIds(session.user.id),
+  ])
+
+  if (!currentUser || !targetUser) throw new Error("User not found")
+  if (blockedIdsList.includes(targetUserId)) throw new Error("Unblock this user before accepting the friend request")
+
+  const hasOutgoing = currentUser.friends.length > 0
+  const hasIncoming = currentUser.friendsOf.length > 0
+
+  if (hasOutgoing && hasIncoming) return { success: true, status: "friend" }
+  if (!hasIncoming) throw new Error("No incoming friend request from this user")
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { friends: { connect: { id: targetUserId } } },
+  })
+
+  revalidatePath("/friends")
+  return { success: true, status: "friend" }
+}
+
 export async function blockUser(targetUserId: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   if (!targetUserId?.trim()) throw new Error("Missing userId")
@@ -248,7 +284,7 @@ export async function blockUser(targetUserId: string) {
 }
 
 export async function unblockUser(targetUserId: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   if (!targetUserId?.trim()) throw new Error("Missing userId")
@@ -262,7 +298,7 @@ export async function unblockUser(targetUserId: string) {
 }
 
 export async function searchUsers(q: string, take = 20) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const trimmed = q.trim()

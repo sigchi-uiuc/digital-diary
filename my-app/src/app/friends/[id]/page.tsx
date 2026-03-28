@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { getFriendProfile } from "@/lib/actions/friends"
 
 function displayName(user: {
@@ -48,7 +47,7 @@ export default async function FriendProfilePage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session) redirect("/auth/signin")
 
   const { id } = await params

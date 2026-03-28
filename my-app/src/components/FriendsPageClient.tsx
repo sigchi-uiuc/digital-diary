@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
-import { sendFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser } from "@/lib/actions/friends"
+import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser } from "@/lib/actions/friends"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
 type ActionTone = "neutral" | "danger" | "soft"
@@ -141,6 +141,20 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
     }
   }
 
+  const handleAcceptFriendRequest = async (userId: string) => {
+    setRelationshipActionUserId(userId)
+    setError("")
+    try {
+      await acceptFriendRequest(userId)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, relationshipStatus: "friend" } : u)))
+      await refreshFriends()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to accept friend request")
+    } finally {
+      setRelationshipActionUserId(null)
+    }
+  }
+
   const blockFriend = async (userId: string) => {
     setRelationshipActionUserId(userId)
     setError("")
@@ -235,7 +249,9 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                       {renderRelationshipAction(
                         user.relationshipStatus,
                         sendingUserId === user.id,
-                        () => handleSendFriendRequest(user.id)
+                        () => handleSendFriendRequest(user.id),
+                        relationshipActionUserId === user.id,
+                        () => handleAcceptFriendRequest(user.id)
                       )}
                     </div>
                   ))}
@@ -250,7 +266,19 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                 {receivedRequests.length === 0 ? (
                   <p className="text-sm text-[#1a4d3e]/70">No incoming friend requests.</p>
                 ) : (
-                  receivedRequests.map((u) => <RelationshipCard key={u.id} user={u} badge="Request Received" compact />)
+                  receivedRequests.map((u) => (
+                    <RelationshipCard
+                      key={u.id}
+                      user={u}
+                      compact
+                      action={{
+                        label: relationshipActionUserId === u.id ? "Accepting..." : "Accept",
+                        onClick: () => handleAcceptFriendRequest(u.id),
+                        tone: "soft",
+                        disabled: relationshipActionUserId === u.id,
+                      }}
+                    />
+                  ))
                 )}
               </RequestsPanel>
 
@@ -270,7 +298,6 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                     <RelationshipCard
                       key={u.id}
                       user={u}
-                      badge="Blocked"
                       compact
                       action={{
                         label: relationshipActionUserId === u.id ? "Unblocking..." : "Unblock",
@@ -335,12 +362,24 @@ function RequestsPanel({ title, count, children }: { title: string; count: numbe
 function renderRelationshipAction(
   status: RelationshipStatus | undefined,
   isSending: boolean,
-  onSend: () => void
+  onSend: () => void,
+  isAccepting = false,
+  onAccept?: () => void
 ) {
   if (status === "blocked") return <span className="rounded-xl bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700">Blocked</span>
   if (status === "friend") return <span className="rounded-xl bg-[#52C9A2]/20 px-3 py-1.5 text-sm font-medium text-[#1a4d3e]">My Friend</span>
   if (status === "outgoing_request") return <span className="rounded-xl bg-[#F5C26B]/25 px-3 py-1.5 text-sm font-medium text-[#7A4B00]">Request Sent</span>
-  if (status === "incoming_request") return <span className="rounded-xl bg-[#4A90E2]/15 px-3 py-1.5 text-sm font-medium text-[#1a4d3e]">Request Received</span>
+  if (status === "incoming_request" && onAccept) {
+    return (
+      <button
+        onClick={onAccept}
+        disabled={isAccepting}
+        className="rounded-xl bg-[#52C9A2] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#45b892] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {isAccepting ? "Accepting..." : "Accept"}
+      </button>
+    )
+  }
 
   return (
     <button

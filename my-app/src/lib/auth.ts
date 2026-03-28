@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth"
+import { getToken } from "next-auth/jwt"
 import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+import { cookies, headers } from "next/headers"
 import prisma from "@/lib/prisma"
 
 const baseAdapter = PrismaAdapter(prisma) as any
@@ -191,5 +193,30 @@ export const authOptions: NextAuthOptions = {
         })
       }
     }
+  }
+}
+
+export async function getAppSession() {
+  const cookieStore = await cookies()
+  const headerStore = await headers()
+
+  const token = await getToken({
+    req: {
+      cookies: new Map(cookieStore.getAll().map((cookie) => [cookie.name, cookie.value])),
+      headers: headerStore,
+    } as any,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
+
+  if (!token?.sub) return null
+
+  return {
+    user: {
+      id: token.sub,
+      username: typeof token.username === "string" ? token.username : "",
+      firstName: typeof token.firstName === "string" ? token.firstName : null,
+      lastName: typeof token.lastName === "string" ? token.lastName : null,
+      profilePicture: typeof token.profilePicture === "string" ? token.profilePicture : null,
+    },
   }
 }

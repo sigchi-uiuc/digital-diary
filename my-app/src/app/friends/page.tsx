@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { getFriends, getFriendEntries } from "@/lib/actions/friends"
 import FriendsPageClient from "@/components/FriendsPageClient"
 
 export default async function FriendsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session) redirect("/auth/signin")
 
   const [friendsData, friendEntries] = await Promise.all([
