@@ -65,6 +65,7 @@ Before running the project, make sure you have the following installed and confi
    
    ```bash
    npm install
+   npx prisma generate
    ```
 
 7. **Start the Development Server**
