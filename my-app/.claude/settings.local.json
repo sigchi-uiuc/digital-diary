@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -E \"\\\\.\\(md|txt|py\\)$\")",
-      "Bash(npm install:*)"
-    ]
-  }
-}
