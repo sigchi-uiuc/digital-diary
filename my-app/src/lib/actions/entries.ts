@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { EntryType, Visibility } from "@prisma/client"
 
 export async function getEntries() {
   const session = await getAppSession()
@@ -43,12 +44,12 @@ export async function createEntry(data: {
   const entry = await prisma.entry.create({
     data: {
       userId: session.user.id,
-      type,
+      type: type as EntryType,
       content,
-      visibility,
+      visibility: visibility as Visibility,
       qualityEmoji,
       mediaUrls,
-      locations: locations || null,
+      locations: locations ?? undefined,
     },
     include: { entryLocations: true },
   })
@@ -87,10 +88,10 @@ export async function updateEntry(
     where: { id },
     data: {
       content: data.content,
-      visibility: data.visibility,
+      visibility: data.visibility as Visibility | undefined,
       qualityEmoji: data.qualityEmoji,
       mediaUrls: data.mediaUrls,
-      locations: data.locations || null,
+      locations: data.locations ?? undefined,
     },
     include: { entryLocations: true },
   })

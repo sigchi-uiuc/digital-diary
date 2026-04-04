@@ -1,11 +1,9 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeSanitize from "rehype-sanitize"
 import { getAppSession } from "@/lib/auth"
 import { getEntry } from "@/lib/actions/entries"
 import MediaViewer from "@/components/MediaViewer"
+import MarkdownContent from "@/components/MarkdownContent"
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -98,13 +96,8 @@ export default async function ViewEntry({
             {/* Content */}
             <div className="px-6 py-6">
               {entry.content ? (
-                <div className="prose max-w-none text-[#1a4d3e]">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]} 
-                    rehypePlugins={[rehypeSanitize]}
-                  >
-                    {entry.content}
-                  </ReactMarkdown>
+                <div className="max-w-none">
+                  <MarkdownContent content={entry.content} />
                 </div>
               ) : (
                 <div className="text-center py-8 text-[#1a4d3e]/50">

@@ -4,8 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { moodBasedPrompts, emojiOptions, getDayActivityQuestions } from "@/lib/guidedPrompts"
+import { getMoodGradient } from "@/lib/moodColors"
 import GestureEmoji from "@/components/GestureEmoji"
 import { createEntry } from "@/lib/actions/entries"
+import { getTrackingMode } from "@/lib/actions/profile"
 import { generateFollowUpQuestions } from "@/lib/actions/journal"
 
 export default function CreateGuidedEntry() {
@@ -19,6 +21,7 @@ export default function CreateGuidedEntry() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
+  const [trackingMode, setTrackingMode] = useState<"hand" | "face">("hand")
   const router = useRouter()
 
   useEffect(() => {
@@ -39,6 +42,12 @@ export default function CreateGuidedEntry() {
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    getTrackingMode().then(mode => {
+      if (mode === "face" || mode === "hand") setTrackingMode(mode)
+    }).catch(() => {})
   }, [])
 
   const handleMoodSelection = (mood: string) => {
@@ -152,7 +161,10 @@ export default function CreateGuidedEntry() {
     : null
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div
+      className="min-h-screen relative z-10 mood-bg-transition"
+      style={{ background: getMoodGradient(selectedMood) }}
+    >
       <nav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -212,9 +224,11 @@ export default function CreateGuidedEntry() {
 
                   <div className="border-t border-white/20 pt-6">
                     <p className="text-center text-sm text-[#1a4d3e]/60 mb-3">
-                      Or indicate with a hand gesture: thumbs up, sideways, or down
+                      {trackingMode === "face"
+                        ? "Or detect with your facial expression"
+                        : "Or indicate with a hand gesture: thumb up, slightly up, sideways, slightly down, or down"}
                     </p>
-                    <GestureEmoji onGestureSelect={handleMoodSelection} />
+                    <GestureEmoji onGestureSelect={handleMoodSelection} mode={trackingMode} />
                   </div>
                 </div>
               )}

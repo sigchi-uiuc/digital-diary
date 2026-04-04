@@ -21,6 +21,7 @@ model User {
   email                 String   @unique
   emailVerified         DateTime?
   profilePicture        String?
+  trackingMode          String   @default("hand")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

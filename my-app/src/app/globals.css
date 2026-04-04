@@ -206,3 +206,7 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #5BA3F5 0%, #63D4B3 100%);
 }
+
+.mood-bg-transition {
+  transition: background 0.8s ease;
+}

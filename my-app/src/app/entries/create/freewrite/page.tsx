@@ -6,6 +6,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import MediaUpload from "@/components/MediaUpload"
 import { createEntry } from "@/lib/actions/entries"
+import { getMoodGradient } from "@/lib/moodColors"
 
 const emojiOptions = [
   { emoji: "😢", label: "Terrible" },
@@ -69,7 +70,10 @@ export default function CreateFreewriteEntry() {
   }
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div
+      className="min-h-screen relative z-10 mood-bg-transition"
+      style={{ background: getMoodGradient(qualityEmoji) }}
+    >
       <nav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">

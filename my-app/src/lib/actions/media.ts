@@ -47,7 +47,7 @@ export async function uploadMedia(formData: FormData) {
   const filePath = join(uploadsDir, fileName)
 
   const bytes = await file.arrayBuffer()
-  let buffer = Buffer.from(bytes)
+  let buffer: Buffer = Buffer.from(new Uint8Array(bytes))
 
   if (!isVideo) {
     try {

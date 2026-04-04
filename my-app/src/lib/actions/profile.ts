@@ -15,6 +15,7 @@ const PROFILE_SELECT = {
   lastName: true,
   email: true,
   profilePicture: true,
+  trackingMode: true,
   createdAt: true,
   updatedAt: true,
   journalEntriesCount: true,
@@ -39,6 +40,7 @@ export async function updateProfile(data: {
   firstName?: string
   lastName?: string
   profilePicture?: string | null
+  trackingMode?: string
 }) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
@@ -49,12 +51,24 @@ export async function updateProfile(data: {
       firstName: data.firstName || null,
       lastName: data.lastName || null,
       profilePicture: data.profilePicture !== undefined ? data.profilePicture || null : undefined,
+      trackingMode: data.trackingMode || undefined,
     },
     select: PROFILE_SELECT,
   })
 
   revalidatePath("/profile/edit")
   return user
+}
+
+export async function getTrackingMode(): Promise<string> {
+  const session = await getAppSession()
+  if (!session?.user?.id) return "hand"
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { trackingMode: true },
+  })
+  return user?.trackingMode ?? "hand"
 }
 
 export async function uploadProfilePicture(formData: FormData) {
@@ -93,7 +107,7 @@ export async function uploadProfilePicture(formData: FormData) {
   const filePath = join(uploadsDir, fileName)
 
   const bytes = await file.arrayBuffer()
-  let buffer = Buffer.from(bytes)
+  let buffer: Buffer = Buffer.from(new Uint8Array(bytes))
 
   try {
     const isAnimated = ["gif", "webp"].includes(fileExtension)

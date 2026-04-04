@@ -1,46 +1,57 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
-type Gesture = "happy" | "okay" | "sad" | null;
+type Gesture = "fantastic" | "good" | "okay" | "sad" | "terrible" | null;
 
 const EMOJI_MAP: Record<NonNullable<Gesture>, string> = {
-    happy: "😊",
+    fantastic: "😄",
+    good: "😊",
     okay: "😐",
-    sad: "😢",
+    sad: "😔",
+    terrible: "😢",
 };
 
 interface GestureEmojiProps {
     onGestureSelect?: (emoji: string) => void;
+    mode?: "hand" | "face";
 }
 
-export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
+export default function GestureEmoji({ onGestureSelect, mode = "hand" }: GestureEmojiProps) {
     const [gesture, setGesture] = useState<Gesture>(null);
     const [confirmed, setConfirmed] = useState(false);
     const [cameraAvailable, setCameraAvailable] = useState(false);
-    const imgRef = useRef<HTMLImageElement>(null);
 
-    // Check if camera stream is available
+    const gestureEndpoint = mode === "face"
+        ? "http://127.0.0.1:8000/face_gesture"
+        : "http://127.0.0.1:8000/gesture";
+    const videoEndpoint = mode === "face"
+        ? "http://127.0.0.1:8000/face_video"
+        : "http://127.0.0.1:8000/video";
+
+    // Check if camera stream is available whenever mode changes
     useEffect(() => {
-        fetch("http://127.0.0.1:8000/video")
+        setCameraAvailable(false);
+        setGesture(null);
+        fetch(videoEndpoint)
             .then(() => setCameraAvailable(true))
             .catch(() => setCameraAvailable(false));
-    }, []);
+    }, [videoEndpoint]);
 
     // Poll for gesture
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch("http://127.0.0.1:8000/gesture");
+                const res = await fetch(gestureEndpoint);
                 const data = await res.json();
                 setGesture(data.gesture);
                 setConfirmed(false);
-            } catch (e) {
+            } catch {
                 // Server not running
             }
         }, 200);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [gestureEndpoint]);
 
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
@@ -49,6 +60,10 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         }
     };
 
+    const instructionText = mode === "face"
+        ? "Show your facial expression — smile big, small, neutral, slight frown, or frown"
+        : "Point your thumb: all the way up, slightly up, sideways, slightly down, or all the way down";
+
     return (
         <div className="flex flex-col items-center gap-3">
 
@@ -56,7 +71,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             {cameraAvailable && (
                 <div className="relative rounded-xl overflow-hidden border-2 border-indigo-200 shadow-md w-48 h-36">
                     <img
-                        src="http://127.0.0.1:8000/video"
+                        src={videoEndpoint}
                         alt="Camera feed"
                         className="w-full h-full object-cover"
                         onError={() => setCameraAvailable(false)}
@@ -70,13 +85,13 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
 
             {/* Detected emoji */}
             <div style={{ fontSize: "60px" }}>
-                {gesture ? EMOJI_MAP[gesture] : "🤚"}
+                {gesture ? EMOJI_MAP[gesture] : (mode === "face" ? "😐" : "🤚")}
             </div>
 
-            <p className="text-sm text-gray-500 text-center">
+            <p className="text-sm text-gray-500 text-center max-w-xs">
                 {gesture
-                    ? `Detected: ${gesture} — click to confirm`
-                    : "Show a thumbs up, sideways, or down"}
+                    ? `Detected: ${EMOJI_MAP[gesture]} — click to confirm`
+                    : instructionText}
             </p>
 
             {gesture && onGestureSelect && (

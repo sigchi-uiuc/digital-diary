@@ -13,6 +13,7 @@ interface UserProfile {
   lastName: string | null
   email: string
   profilePicture: string | null
+  trackingMode: string
   createdAt: Date
   updatedAt: Date
   journalEntriesCount: number
@@ -39,6 +40,9 @@ export default function EditProfileForm({ initialProfile }: Props) {
 
   const [firstName, setFirstName] = useState(initialProfile.firstName || "")
   const [lastName, setLastName] = useState(initialProfile.lastName || "")
+  const [trackingMode, setTrackingMode] = useState<"hand" | "face">(
+    initialProfile.trackingMode === "face" ? "face" : "hand"
+  )
   const [profilePicture, setProfilePicture] = useState(initialProfile.profilePicture || "")
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null)
   const [uploadingPicture, setUploadingPicture] = useState(false)
@@ -98,6 +102,7 @@ export default function EditProfileForm({ initialProfile }: Props) {
       await updateProfile({
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
+        trackingMode,
       })
       await updateSession()
       setSuccess("Profile updated! Redirecting...")
@@ -228,6 +233,48 @@ export default function EditProfileForm({ initialProfile }: Props) {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                   />
+                </div>
+              </div>
+
+              {/* Emotion Detection Mode */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a4d3e] mb-1">
+                  Emotion Detection Mode
+                </label>
+                <p className="text-xs text-[#1a4d3e]/50 mb-3">
+                  Choose how to detect your mood when creating entries
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTrackingMode("hand")}
+                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all hover:scale-[1.02] ${
+                      trackingMode === "hand"
+                        ? "border-[#4A90E2] bg-[#4A90E2]/10"
+                        : "border-white/50 glass hover:border-white/70"
+                    }`}
+                  >
+                    <span className="text-3xl mb-2">🤚</span>
+                    <span className="text-sm font-medium text-[#1a4d3e]">Hand Tracking</span>
+                    <span className="text-xs text-[#1a4d3e]/60 mt-1 text-center">
+                      Point your thumb to express your mood
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrackingMode("face")}
+                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all hover:scale-[1.02] ${
+                      trackingMode === "face"
+                        ? "border-[#4A90E2] bg-[#4A90E2]/10"
+                        : "border-white/50 glass hover:border-white/70"
+                    }`}
+                  >
+                    <span className="text-3xl mb-2">😊</span>
+                    <span className="text-sm font-medium text-[#1a4d3e]">Face Tracking</span>
+                    <span className="text-xs text-[#1a4d3e]/60 mt-1 text-center">
+                      Detect mood from your facial expression
+                    </span>
+                  </button>
                 </div>
               </div>
 
