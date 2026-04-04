@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import uvicorn
 import time
+import os
 
-HAND_MODEL_PATH = "hand_landmarker.task"
+HAND_MODEL_PATH = os.path.join(os.path.dirname(__file__), "hand_landmarker.task")
 
 app = FastAPI()
 

@@ -1,7 +1,6 @@
 "use server"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { generateJournalQuestions } from "@/lib/journalQuestions"
 import Anthropic from "@anthropic-ai/sdk"
 import { fetchCalendarEvents } from "@/lib/googleCalendar"
@@ -16,7 +15,7 @@ function getTodayDateRange() {
 }
 
 export async function getJournalQuestions(qualityScore?: number | null) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   let validatedScore: number | null = null
@@ -44,7 +43,7 @@ export async function generateFollowUpQuestions(params: {
   mood?: string
   weather?: WeatherData | null
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const { prompts, responses, mood, weather } = params

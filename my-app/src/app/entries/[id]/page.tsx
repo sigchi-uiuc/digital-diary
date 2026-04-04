@@ -1,10 +1,9 @@
 import { notFound, redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeSanitize from "rehype-sanitize"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { getEntry } from "@/lib/actions/entries"
 import MediaViewer from "@/components/MediaViewer"
 
@@ -23,7 +22,7 @@ export default async function ViewEntry({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session) redirect("/auth/signin")
 
   const { id } = await params

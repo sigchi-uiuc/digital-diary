@@ -1,12 +1,11 @@
 "use server"
 
-import { getServerSession } from "next-auth/next"
 import { revalidatePath } from "next/cache"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 
 export async function getEntries() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   return prisma.entry.findMany({
@@ -17,7 +16,7 @@ export async function getEntries() {
 }
 
 export async function getEntry(id: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   return prisma.entry.findFirst({
@@ -34,7 +33,7 @@ export async function createEntry(data: {
   mediaUrls?: string[]
   locations?: unknown
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const { type, content, visibility = "PRIVATE", qualityEmoji, mediaUrls = [], locations } = data
@@ -76,7 +75,7 @@ export async function updateEntry(
     locations?: unknown
   }
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const existing = await prisma.entry.findFirst({
@@ -102,7 +101,7 @@ export async function updateEntry(
 }
 
 export async function deleteEntry(id: string) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const existing = await prisma.entry.findFirst({

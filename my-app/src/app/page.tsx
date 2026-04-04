@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
 import Link from "next/link"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { getEntries } from "@/lib/actions/entries"
 import { getFriendEntries } from "@/lib/actions/friends"
 import prisma from "@/lib/prisma"
@@ -75,7 +74,7 @@ function LandingPage() {
 }
 
 export default async function Home() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
 
   if (!session) {
     return <LandingPage />

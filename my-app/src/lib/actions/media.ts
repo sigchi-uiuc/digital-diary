@@ -1,14 +1,13 @@
 "use server"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
 import sharp from "sharp"
 
 export async function uploadMedia(formData: FormData) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const file = formData.get("media") as File

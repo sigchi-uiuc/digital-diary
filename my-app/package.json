@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "concurrently --kill-others-on-fail \"next dev --turbopack\" \"python src/app/gesture_server.py\"",
     "build": "next build --turbopack",
     "start": "next start",
     "prisma:generate": "prisma generate",
@@ -33,6 +33,7 @@
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "prisma": "^6.12.0",
     "tailwindcss": "^4",
     "typescript": "^5"

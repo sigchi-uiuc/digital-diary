@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import { getEntry } from "@/lib/actions/entries"
 import EditEntryForm from "@/components/EditEntryForm"
 
@@ -9,7 +8,7 @@ export default async function EditEntryPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session) redirect("/auth/signin")
 
   const { id } = await params

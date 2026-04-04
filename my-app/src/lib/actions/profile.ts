@@ -1,8 +1,7 @@
 "use server"
 
-import { getServerSession } from "next-auth/next"
 import { revalidatePath } from "next/cache"
-import { authOptions } from "@/lib/auth"
+import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { writeFile, mkdir, unlink } from "fs/promises"
 import { join } from "path"
@@ -25,7 +24,7 @@ const PROFILE_SELECT = {
 } as const
 
 export async function getProfile() {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const user = await prisma.user.findUnique({
@@ -41,7 +40,7 @@ export async function updateProfile(data: {
   lastName?: string
   profilePicture?: string | null
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const user = await prisma.user.update({
@@ -59,7 +58,7 @@ export async function updateProfile(data: {
 }
 
 export async function uploadProfilePicture(formData: FormData) {
-  const session = await getServerSession(authOptions)
+  const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   const file = formData.get("profilePicture") as File
