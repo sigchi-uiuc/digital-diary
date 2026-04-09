@@ -143,7 +143,7 @@ export default function CreateFreewriteEntry() {
               {/* Media Upload */}
               {/* Record Audio */}
               <div>
-                <label className="block text-sm font-medium text-[#1a4d3e] mb-2">Record Audio</label>
+                <label className="block text-sm font-medium text-[#1a4d3e] mb-2">Record Audio Here</label>
                 <div className="panel-soft p-3 rounded-md">
                   <SpeechText />
                   <p className="mt-2 text-xs text-[#1a4d3e]/60">Record and playback audio for this entry. Download the file if you want to attach it.</p>

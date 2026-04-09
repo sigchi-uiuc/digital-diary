@@ -14,6 +14,7 @@
     "@auth/prisma-adapter": "^2.11.0",
     "@prisma/client": "^6.19.2",
     "googleapis": "^169.0.0",
+    "legacy": "^0.0.3",
     "next": "^15.5.9",
     "next-auth": "^4.24.11",
     "react": "19.1.0",
