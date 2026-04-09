@@ -12,6 +12,10 @@ yarn dev
 pnpm dev
 # or
 bun dev
+# or
+pip install mediapipe
+# or
+pip install fastapi uvicorn mediapipe
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
