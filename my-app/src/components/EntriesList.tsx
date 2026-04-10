@@ -1,4 +1,10 @@
+"use client"
+
 import Link from "next/link"
+import Image from "next/image"
+import { motion } from "framer-motion"
+import { staggerContainer, cardVariant } from "@/lib/animations"
+import { PenIcon, PlayIcon } from "@/components/icons"
 import EntryDeleteButton from "@/components/EntryDeleteButton"
 
 interface Entry {
@@ -67,7 +73,9 @@ export default function EntriesList({ entries }: Props) {
     return (
       <div className="text-center py-16">
         <div className="panel-soft p-12 max-w-md mx-auto">
-          <div className="text-7xl mb-6">📝</div>
+          <div className="flex justify-center text-[#1a4d3e]/60 mb-6">
+            <PenIcon className="w-14 h-14" />
+          </div>
           <h3 className="text-2xl font-bold text-[#1a4d3e] mb-3">No entries yet</h3>
           <p className="text-[#1a4d3e]/70 mb-8">
             Start your digital diary journey by creating your first entry.
@@ -92,83 +100,100 @@ export default function EntriesList({ entries }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <motion.div
+      className="space-y-5"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {entries.map((entry) => (
-        <div key={entry.id} className="panel-soft hover:scale-[1.01] transition-all duration-300 droplet">
-          <Link href={`/entries/${entry.id}`} className="block p-6">
-            <div className="flex items-center space-x-3 mb-3">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                entry.type === "FREEWRITE"
-                  ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
-                  : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
-              }`}>
-                {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
-              </span>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                entry.visibility === "PUBLIC"
-                  ? "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white"
-                  : entry.visibility === "PROTECTED"
-                  ? "bg-gradient-to-r from-[#FFD93D] to-[#FFE66D] text-[#1a4d3e]"
-                  : "glass text-[#1a4d3e]"
-              }`}>
-                {entry.visibility.toLowerCase()}
-              </span>
-              {entry.qualityEmoji && <span className="text-2xl">{entry.qualityEmoji}</span>}
-            </div>
+        <motion.div
+          key={entry.id}
+          variants={cardVariant}
+          whileHover={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="panel-soft transition-all duration-300 droplet">
+            <Link href={`/entries/${entry.id}`} className="block p-6">
+              <div className="flex items-center space-x-3 mb-3">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                  entry.type === "FREEWRITE"
+                    ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
+                    : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
+                }`}>
+                  {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
+                </span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                  entry.visibility === "PRIVATE"
+                    ? "glass text-[#1a4d3e]"
+                    : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white"
+                }`}>
+                  {entry.visibility === "PRIVATE" ? "private" : "shared"}
+                </span>
+                {entry.qualityEmoji && <span className="text-2xl">{entry.qualityEmoji}</span>}
+              </div>
 
-            <div className="mb-1">
-              <span className="text-xs font-semibold text-[#4A90E2]">{relativeTime(entry.createdAt)}</span>
-            </div>
-            <h3 className="text-base font-semibold text-[#1a4d3e]/70 mb-3 text-sm">
-              {formatDate(entry.createdAt)}
-            </h3>
+              <div className="mb-1">
+                <span className="text-xs font-semibold text-[#4A90E2]">{relativeTime(entry.createdAt)}</span>
+              </div>
+              <h3 className="text-base font-semibold text-[#1a4d3e]/70 mb-3 text-sm">
+                {formatDate(entry.createdAt)}
+              </h3>
 
-            <p className="text-[#1a4d3e]/80 text-sm mb-4 line-clamp-3">
-              {entry.content ? stripMarkdown(entry.content) : "No content"}
-            </p>
+              <p className="text-[#1a4d3e]/80 text-sm mb-4 line-clamp-3">
+                {entry.content ? stripMarkdown(entry.content) : "No content"}
+              </p>
 
-            {entry.mediaUrls && entry.mediaUrls.length > 0 && (
-              <div className="flex gap-2 mb-4">
-                {entry.mediaUrls.slice(0, 3).map((url, index) => {
-                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-                  return isImage ? (
-                    <img key={index} src={url} alt={`Preview ${index + 1}`} className="w-16 h-16 object-cover rounded-lg border border-[#1a4d3e]/20" />
-                  ) : (
-                    <div key={index} className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center">
-                      <span className="text-xs">🎥</span>
+              {entry.mediaUrls && entry.mediaUrls.length > 0 && (
+                <div className="flex gap-2 mb-4">
+                  {entry.mediaUrls.slice(0, 3).map((url, index) => {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+                    return isImage ? (
+                      <Image
+                        key={index}
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        width={64}
+                        height={64}
+                        className="w-16 h-16 object-cover rounded-lg border border-[#1a4d3e]/20"
+                      />
+                    ) : (
+                      <div key={index} className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center">
+                        <PlayIcon className="w-4 h-4 text-[#1a4d3e]/50" />
+                      </div>
+                    )
+                  })}
+                  {entry.mediaUrls.length > 3 && (
+                    <div className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center">
+                      <span className="text-xs text-[#1a4d3e]/70">+{entry.mediaUrls.length - 3}</span>
                     </div>
-                  )
-                })}
-                {entry.mediaUrls.length > 3 && (
-                  <div className="w-16 h-16 bg-[#1a4d3e]/10 rounded-lg border border-[#1a4d3e]/20 flex items-center justify-center">
-                    <span className="text-xs text-[#1a4d3e]/70">+{entry.mediaUrls.length - 3}</span>
-                  </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center text-xs text-[#1a4d3e]/50 gap-2">
+                <span>{wordCount(entry.content)} words</span>
+                {new Date(entry.updatedAt).getTime() !== new Date(entry.createdAt).getTime() && (
+                  <>
+                    <span>-</span>
+                    <span>Edited {relativeTime(entry.updatedAt)}</span>
+                  </>
                 )}
               </div>
-            )}
-
-            <div className="flex items-center text-xs text-[#1a4d3e]/50 gap-2">
-              <span>{wordCount(entry.content)} words</span>
-              {new Date(entry.updatedAt).getTime() !== new Date(entry.createdAt).getTime() && (
-                <>
-                  <span>•</span>
-                  <span>Edited {relativeTime(entry.updatedAt)}</span>
-                </>
-              )}
-            </div>
-          </Link>
-
-          <div className="px-6 pb-6 flex items-center justify-end space-x-3">
-            <Link
-              href={`/entries/${entry.id}/edit`}
-              className="glass rounded-xl px-4 py-2 text-[#1a4d3e] hover:bg-white/40 transition-all text-sm font-medium"
-            >
-              Edit
             </Link>
-            <EntryDeleteButton entryId={entry.id} />
+
+            <div className="px-6 pb-6 flex items-center justify-end space-x-3">
+              <Link
+                href={`/entries/${entry.id}/edit`}
+                className="glass rounded-xl px-4 py-2 text-[#1a4d3e] hover:bg-white/40 transition-all text-sm font-medium"
+              >
+                Edit
+              </Link>
+              <EntryDeleteButton entryId={entry.id} />
+            </div>
           </div>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 }

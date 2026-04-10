@@ -4,6 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import Image from "next/image"
+import { motion } from "framer-motion"
+import { sectionReveal, staggerContainerSlow, cardVariant } from "@/lib/animations"
 import { updateProfile, uploadProfilePicture } from "@/lib/actions/profile"
 
 interface UserProfile {
@@ -134,7 +137,12 @@ export default function EditProfileForm({ initialProfile }: Props) {
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <div className="panel-soft overflow-hidden">
+          <motion.div
+            className="panel-soft overflow-hidden"
+            variants={sectionReveal}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="px-6 py-5 border-b border-white/20">
               <h1 className="text-2xl font-bold text-[#1a4d3e]">Edit Profile</h1>
               <p className="mt-1 text-sm text-[#1a4d3e]/60">
@@ -142,7 +150,13 @@ export default function EditProfileForm({ initialProfile }: Props) {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <motion.form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6"
+              variants={staggerContainerSlow}
+              initial="hidden"
+              animate="visible"
+            >
               {error && (
                 <div className="glass-strong rounded-2xl border border-red-200/50 p-4">
                   <p className="text-red-700 font-medium">{error}</p>
@@ -155,14 +169,14 @@ export default function EditProfileForm({ initialProfile }: Props) {
               )}
 
               {/* Profile Picture */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label className="block text-sm font-medium text-[#1a4d3e] mb-3">
                   Profile Picture
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0">
+                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0">
                     {profilePicture ? (
-                      <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      <Image src={profilePicture} alt="Profile" fill className="object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-xl font-bold">
                         {displayName().charAt(0).toUpperCase()}
@@ -204,10 +218,10 @@ export default function EditProfileForm({ initialProfile }: Props) {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Name Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" variants={cardVariant}>
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                     First Name
@@ -234,10 +248,10 @@ export default function EditProfileForm({ initialProfile }: Props) {
                     onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
-              </div>
+              </motion.div>
 
               {/* Emotion Detection Mode */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label className="block text-sm font-medium text-[#1a4d3e] mb-1">
                   Emotion Detection Mode
                 </label>
@@ -276,7 +290,7 @@ export default function EditProfileForm({ initialProfile }: Props) {
                     </span>
                   </button>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Username (read-only) */}
               <div>
@@ -315,7 +329,7 @@ export default function EditProfileForm({ initialProfile }: Props) {
               {/* Stats */}
               <div className="panel-soft p-5">
                 <h3 className="text-sm font-semibold text-[#1a4d3e] mb-4">Account Statistics</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] bg-clip-text text-transparent">
                       {initialProfile.journalEntriesCount}
@@ -324,15 +338,9 @@ export default function EditProfileForm({ initialProfile }: Props) {
                   </div>
                   <div>
                     <div className="text-2xl font-bold bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] bg-clip-text text-transparent">
-                      {initialProfile.publicEntriesCount}
+                      {initialProfile.publicEntriesCount + initialProfile.protectedEntriesCount}
                     </div>
-                    <div className="text-xs text-[#1a4d3e]/60 mt-1">Public</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold bg-gradient-to-r from-[#FFD93D] to-[#FFE66D] bg-clip-text text-transparent">
-                      {initialProfile.protectedEntriesCount}
-                    </div>
-                    <div className="text-xs text-[#1a4d3e]/60 mt-1">Protected</div>
+                    <div className="text-xs text-[#1a4d3e]/60 mt-1">Shared</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-[#1a4d3e]/50">
@@ -362,8 +370,8 @@ export default function EditProfileForm({ initialProfile }: Props) {
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
-            </form>
-          </div>
+            </motion.form>
+          </motion.div>
         </div>
       </main>
     </div>

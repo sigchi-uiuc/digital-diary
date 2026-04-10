@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getAppSession } from "@/lib/auth"
@@ -11,6 +12,9 @@ import CalendarEvents from "@/components/CalendarEvents"
 import WeatherDisplay from "@/components/WeatherDisplay"
 import DiaryCalendarPopup from "@/components/DiaryCalendar"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
+import StatsBar from "@/components/StatsBar"
+import AnimatedSection from "@/components/AnimatedSection"
+import { BookIcon } from "@/components/icons"
 
 async function getUserStats(userId: string) {
   return prisma.user.findUnique({
@@ -48,25 +52,29 @@ function LandingPage() {
 
       <main className="max-w-4xl mx-auto py-12 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="panel-soft p-12 text-center droplet">
-            <div className="space-y-6">
-              <div className="text-7xl mb-4">📔</div>
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
-                Welcome to Digital Diary
-              </h2>
-              <p className="text-lg text-[#1a4d3e]/80 max-w-md mx-auto">
-                Capture your thoughts, experiences, and reflections in a beautiful digital space inspired by nature.
-              </p>
-              <div className="mt-8 flex justify-center space-x-4">
-                <Link href="/auth/signin" className="btn-glossy rounded-2xl px-8 py-3 text-white font-medium">
-                  Sign In
-                </Link>
-                <Link href="/auth/signup" className="glass rounded-2xl px-8 py-3 text-[#1a4d3e] hover:bg-white/40 transition-all font-medium border-2 border-white/50">
-                  Create Account
-                </Link>
+          <AnimatedSection preset="hero">
+            <div className="panel-soft p-12 text-center droplet">
+              <div className="space-y-6">
+                <div className="flex justify-center text-[#1a4d3e]">
+                  <BookIcon className="w-16 h-16" />
+                </div>
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
+                  Welcome to Digital Diary
+                </h2>
+                <p className="text-lg text-[#1a4d3e]/80 max-w-md mx-auto">
+                  Capture your thoughts, experiences, and reflections in a beautiful digital space inspired by nature.
+                </p>
+                <div className="mt-8 flex justify-center space-x-4">
+                  <Link href="/auth/signin" className="btn-glossy rounded-2xl px-8 py-3 text-white font-medium">
+                    Sign In
+                  </Link>
+                  <Link href="/auth/signup" className="glass rounded-2xl px-8 py-3 text-[#1a4d3e] hover:bg-white/40 transition-all font-medium border-2 border-white/50">
+                    Create Account
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          </AnimatedSection>
         </div>
       </main>
     </div>
@@ -110,42 +118,29 @@ export default async function Home() {
         <div className="px-4 py-6 sm:px-0 space-y-8">
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: "Total Entries", value: stats?.journalEntriesCount ?? 0, icon: "📔", gradient: "from-[#4A90E2] to-[#5BA3F5]" },
-              { label: "Public",        value: stats?.publicEntriesCount    ?? 0, icon: "🌍", gradient: "from-[#52C9A2] to-[#63D4B3]" },
-              { label: "Protected",     value: stats?.protectedEntriesCount ?? 0, icon: "🔐", gradient: "from-[#FFD93D] to-[#FFE66D]" },
-              { label: "Private",       value: stats?.privateEntriesCount   ?? 0, icon: "🔒", gradient: "from-[#B8C6DB] to-[#C8D6E5]" },
-            ].map(({ label, value, icon, gradient }) => (
-              <div key={label} className="panel-soft p-5 text-center">
-                <div className="text-2xl mb-2">{icon}</div>
-                <div className={`text-3xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-                  {value}
-                </div>
-                <div className="text-xs text-[#1a4d3e]/60 mt-1 font-medium">{label}</div>
-              </div>
-            ))}
-          </div>
+          <StatsBar stats={stats} />
 
           {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left column — entries */}
             <div className="lg:col-span-7">
-              <div className="mb-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
-                      Your Journal
-                    </h2>
-                    <p className="mt-1 text-sm text-[#1a4d3e]/60">
-                      {entries.length > 0
-                        ? `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`
-                        : "Start documenting your journey"}
-                    </p>
+              <AnimatedSection preset="fadeUp" delay={0.1}>
+                <div className="mb-6">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
+                        Your Journal
+                      </h2>
+                      <p className="mt-1 text-sm text-[#1a4d3e]/60">
+                        {entries.length > 0
+                          ? `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`
+                          : "Start documenting your journey"}
+                      </p>
+                    </div>
+                    <CreateEntryDropdown />
                   </div>
-                  <CreateEntryDropdown />
                 </div>
-              </div>
+              </AnimatedSection>
 
               <EntriesList entries={entries} />
               <RecentFriendEntries variant="home" initialEntries={friendEntries} />
@@ -153,11 +148,17 @@ export default async function Home() {
 
             {/* Right column — calendar */}
             <div className="lg:col-span-5 space-y-8">
-              <CalendarEvents />
-              <div className="panel-soft p-4">
-                <h3 className="text-lg font-semibold text-[#1a4d3e] mb-2">Diary Calendar</h3>
-                <DiaryCalendarPopup />
-              </div>
+              <AnimatedSection preset="reveal" delay={0.2}>
+                <Suspense fallback={<div className="panel-soft p-5 animate-pulse h-48 rounded-2xl" />}>
+                  <CalendarEvents />
+                </Suspense>
+              </AnimatedSection>
+              <AnimatedSection preset="reveal" delay={0.3}>
+                <div className="panel-soft p-4">
+                  <h3 className="text-lg font-semibold text-[#1a4d3e] mb-2">Diary Calendar</h3>
+                  <DiaryCalendarPopup entries={entries} />
+                </div>
+              </AnimatedSection>
             </div>
           </div>
 

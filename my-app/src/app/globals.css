@@ -210,3 +210,162 @@ html {
 .mood-bg-transition {
   transition: background 0.8s ease;
 }
+
+/* ── Fluid panel hover ── */
+.panel-soft {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+
+.panel-soft:hover {
+  box-shadow:
+    0 12px 40px rgba(31, 38, 135, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Glass link / nav item hover ripple ── */
+.glass {
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.glass:hover {
+  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.12);
+}
+
+.glass:active {
+  transform: scale(0.98);
+}
+
+/* ── Glossy button press feedback ── */
+.btn-glossy,
+.btn-glossy-green {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.btn-glossy:active,
+.btn-glossy-green:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ── Input focus glow ── */
+.input-glass:focus {
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15),
+              0 2px 8px rgba(74, 144, 226, 0.1);
+}
+
+/* ── Smooth badge / tag pills ── */
+.rounded-full {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Gentle nav bar blur transition ── */
+.glass-strong {
+  transition: backdrop-filter 0.3s ease, background 0.3s ease;
+}
+
+/* ── React-Calendar glassmorphism override ── */
+.react-calendar {
+  background: transparent !important;
+  border: none !important;
+  font-family: inherit !important;
+  width: 100% !important;
+  line-height: 1.4 !important;
+}
+
+.react-calendar__navigation {
+  margin-bottom: 0.5rem !important;
+  gap: 4px;
+}
+
+.react-calendar__navigation button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  color: #1a4d3e !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  min-width: 36px !important;
+  padding: 6px 8px !important;
+  transition: background 0.2s ease, transform 0.15s ease !important;
+}
+
+.react-calendar__navigation button:hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+  transform: scale(1.04);
+}
+
+.react-calendar__navigation button:disabled {
+  opacity: 0.35 !important;
+  background: transparent !important;
+}
+
+.react-calendar__month-view__weekdays {
+  text-transform: uppercase !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  color: rgba(26, 77, 62, 0.5) !important;
+  letter-spacing: 0.05em;
+}
+
+.react-calendar__month-view__weekdays abbr {
+  text-decoration: none !important;
+}
+
+.react-calendar__tile {
+  background: transparent !important;
+  color: #1a4d3e !important;
+  border-radius: 10px !important;
+  padding: 8px 4px !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease !important;
+  position: relative;
+}
+
+.react-calendar__tile:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  transform: scale(1.08);
+}
+
+.react-calendar__tile--now {
+  background: rgba(74, 144, 226, 0.12) !important;
+  color: #4A90E2 !important;
+  font-weight: 700 !important;
+}
+
+.react-calendar__tile--now:hover {
+  background: rgba(74, 144, 226, 0.22) !important;
+}
+
+.react-calendar__tile--active,
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: linear-gradient(135deg, #4A90E2, #52C9A2) !important;
+  color: white !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: rgba(26, 77, 62, 0.25) !important;
+}
+
+.react-calendar__tile--hasActive {
+  background: rgba(74, 144, 226, 0.15) !important;
+}
+
+/* ── Selection color ── */
+::selection {
+  background: rgba(74, 144, 226, 0.25);
+  color: #1a4d3e;
+}
+
+/* ── Focus-visible ring for accessibility ── */
+*:focus-visible {
+  outline: 2px solid rgba(74, 144, 226, 0.5);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

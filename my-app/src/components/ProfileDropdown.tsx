@@ -2,7 +2,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { signOut } from "next-auth/react"
+import { motion, AnimatePresence } from "framer-motion"
+import { dropdownVariants } from "@/lib/animations"
 
 interface User {
   firstName?: string | null
@@ -42,7 +45,7 @@ export default function ProfileDropdown({ user }: Props) {
       >
         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg">
           {user.profilePicture ? (
-            <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+            <Image src={user.profilePicture} alt="Profile" width={40} height={40} className="w-full h-full object-cover" />
           ) : (
             <span className="flex w-full h-full items-center justify-center">{getInitials()}</span>
           )}
@@ -58,16 +61,23 @@ export default function ProfileDropdown({ user }: Props) {
         </svg>
       </button>
 
-      {isOpen && (
+      <AnimatePresence>
+        {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 z-20 mt-3 w-64 origin-top-right glass-strong rounded-3xl shadow-2xl overflow-hidden">
+          <motion.div
+            className="absolute right-0 z-20 mt-3 w-64 origin-top-right glass-strong rounded-3xl shadow-2xl overflow-hidden"
+            variants={dropdownVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
             <div className="py-2">
               <div className="px-5 py-4 border-b border-white/20">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg">
                     {user.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      <Image src={user.profilePicture} alt="Profile" width={48} height={48} className="w-full h-full object-cover" />
                     ) : (
                       <span className="flex w-full h-full items-center justify-center">{getInitials()}</span>
                     )}
@@ -102,9 +112,10 @@ export default function ProfileDropdown({ user }: Props) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { motion } from "framer-motion"
+import { sectionReveal, staggerContainerSlow, cardVariant } from "@/lib/animations"
 import MediaUpload from "@/components/MediaUpload"
 import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
@@ -92,7 +94,12 @@ export default function CreateFreewriteEntry() {
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <div className="panel-soft overflow-hidden">
+          <motion.div
+            className="panel-soft overflow-hidden"
+            variants={sectionReveal}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="px-6 py-5 border-b border-white/20">
               <h1 className="text-2xl font-bold text-[#1a4d3e]">Freewrite Entry</h1>
               <p className="mt-1 text-sm text-[#1a4d3e]/60">
@@ -100,7 +107,13 @@ export default function CreateFreewriteEntry() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <motion.form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6"
+              variants={staggerContainerSlow}
+              initial="hidden"
+              animate="visible"
+            >
               {error && (
                 <div className="glass-strong rounded-2xl border border-red-200/50 p-4">
                   <p className="text-red-700 font-medium">{error}</p>
@@ -108,7 +121,7 @@ export default function CreateFreewriteEntry() {
               )}
 
               {/* Content */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label htmlFor="content" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                   What&apos;s on your mind?
                 </label>
@@ -121,44 +134,47 @@ export default function CreateFreewriteEntry() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-[#1a4d3e]/50">{content.length} characters</p>
-              </div>
+              </motion.div>
 
               {/* Mood */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label className="block text-sm font-medium text-[#1a4d3e] mb-4 text-center">
                   How was your day today?
                 </label>
                 <div className="flex justify-center gap-3 flex-wrap">
                   {emojiOptions.map((option) => (
-                    <button
+                    <motion.button
                       key={option.emoji}
                       type="button"
-                      className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
+                      className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-colors ${
                         qualityEmoji === option.emoji
                           ? "border-[#4A90E2] bg-[#4A90E2]/10"
                           : "border-white/50 glass hover:border-white/70"
                       }`}
                       onClick={() => setQualityEmoji(qualityEmoji === option.emoji ? "" : option.emoji)}
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.94 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
                       <span className="text-3xl mb-1">{option.emoji}</span>
                       <span className="text-xs text-[#1a4d3e]/70">{option.label}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Voice Note */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <VoiceRecorder voiceUrl={voiceUrl} onVoiceChange={setVoiceUrl} />
-              </div>
+              </motion.div>
 
               {/* Media Upload */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <MediaUpload mediaUrls={mediaUrls} onMediaChange={setMediaUrls} />
-              </div>
+              </motion.div>
 
               {/* Visibility */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label htmlFor="visibility" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                   Entry Visibility
                 </label>
@@ -169,10 +185,9 @@ export default function CreateFreewriteEntry() {
                   onChange={(e) => setVisibility(e.target.value)}
                 >
                   <option value="PRIVATE">Private — Only you can see this</option>
-                  <option value="PROTECTED">Protected — Visible to friends</option>
-                  <option value="PUBLIC">Public — Visible to everyone</option>
+                  <option value="PROTECTED">Shared with friends</option>
                 </select>
-              </div>
+              </motion.div>
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-6 border-t border-white/20">
@@ -190,8 +205,8 @@ export default function CreateFreewriteEntry() {
                   {isLoading ? "Creating..." : "Create Entry"}
                 </button>
               </div>
-            </form>
-          </div>
+            </motion.form>
+          </motion.div>
         </div>
       </main>
     </div>

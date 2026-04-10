@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
+import { staggerContainer, cardVariant, fadeUp, sectionReveal, listItem } from "@/lib/animations"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
 import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser } from "@/lib/actions/friends"
 
@@ -201,8 +204,13 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
       </nav>
 
       <main className="max-w-5xl mx-auto py-8 sm:px-6 lg:px-8">
-        <div className="px-4 sm:px-0 space-y-6">
-          <div className="panel-soft p-6">
+        <motion.div
+          className="px-4 sm:px-0 space-y-6"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="panel-soft p-6" variants={cardVariant}>
             <label htmlFor="user-search" className="block text-sm font-medium text-[#1a4d3e] mb-2">
               Search people to send a friend request
             </label>
@@ -215,7 +223,7 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
               className="input-glass w-full px-4 py-3 focus:ring-2 focus:ring-[#4A90E2]"
             />
             <p className="mt-2 text-xs text-[#1a4d3e]/70">Results update while you type.</p>
-          </div>
+          </motion.div>
 
           {error && (
             <div className="glass-strong rounded-2xl p-4 border-2 border-red-200/60 text-red-700 text-sm">
@@ -223,20 +231,21 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
             </div>
           )}
 
+          <AnimatePresence mode="wait">
           {trimmedQuery.length >= 2 && (
             <>
               {searching ? (
-                <div className="panel-soft p-8 text-center text-[#1a4d3e]">Searching...</div>
+                <motion.div key="searching" className="panel-soft p-8 text-center text-[#1a4d3e]" variants={fadeUp} initial="hidden" animate="visible" exit="hidden">Searching...</motion.div>
               ) : users.length === 0 ? (
-                <div className="panel-soft p-8 text-center text-[#1a4d3e]/80">No users found.</div>
+                <motion.div key="no-results" className="panel-soft p-8 text-center text-[#1a4d3e]/80" variants={fadeUp} initial="hidden" animate="visible" exit="hidden">No users found.</motion.div>
               ) : (
-                <div className="space-y-3">
+                <motion.div key="results" className="space-y-3" variants={staggerContainer} initial="hidden" animate="visible" exit="hidden">
                   {users.map((user) => (
-                    <div key={user.id} className="panel-soft p-4 flex items-center justify-between">
+                    <motion.div key={user.id} className="panel-soft p-4 flex items-center justify-between" variants={listItem}>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden">
+                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden">
                           {user.profilePicture ? (
-                            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
+                            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
                           ) : (
                             <span>{initials(user)}</span>
                           )}
@@ -253,14 +262,15 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                         relationshipActionUserId === user.id,
                         () => handleAcceptFriendRequest(user.id)
                       )}
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
             </>
           )}
+          </AnimatePresence>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.6fr] gap-5 items-start">
+          <motion.div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.6fr] gap-5 items-start" variants={cardVariant}>
             <div className="space-y-4 lg:max-w-sm">
               <RequestsPanel title="Requests I Received" count={receivedRequests.length}>
                 {receivedRequests.length === 0 ? (
@@ -340,8 +350,8 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
 
               <RecentFriendEntries variant="friends" initialEntries={friendEntries} />
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </main>
     </div>
   )
@@ -398,9 +408,9 @@ function RelationshipCard({ user, badge, compact = false, action, href }: {
   const content = (
     <>
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
+        <div className={`relative ${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
           {user.profilePicture ? (
-            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
+            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
           ) : <span>{initials(user)}</span>}
         </div>
         <div className="min-w-0">

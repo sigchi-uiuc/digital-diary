@@ -3,7 +3,8 @@ import Link from "next/link"
 import { getAppSession } from "@/lib/auth"
 import { getEntry } from "@/lib/actions/entries"
 import MediaViewer from "@/components/MediaViewer"
-import MarkdownContent from "@/components/MarkdownContent"
+import AnimatedSection from "@/components/AnimatedSection"
+import MarkdownContentLoader from "@/components/MarkdownContentLoader"
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -51,64 +52,63 @@ export default async function ViewEntry({
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <div className="panel-soft overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-white/20">
-              <div className="flex items-center space-x-2 mb-3">
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                    entry.type === "FREEWRITE"
-                      ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
-                      : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
-                  }`}
-                >
-                  {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
-                </span>
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                    entry.visibility === "PUBLIC"
-                      ? "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white"
-                      : entry.visibility === "PROTECTED"
-                      ? "bg-gradient-to-r from-[#FFD93D] to-[#FFE66D] text-[#1a4d3e]"
-                      : "glass text-[#1a4d3e]"
-                  }`}
-                >
-                  {entry.visibility.toLowerCase()}
-                </span>
-                {entry.qualityEmoji && (
-                  <span className="text-xl">{entry.qualityEmoji}</span>
-                )}
+          <AnimatedSection preset="reveal">
+            <div className="panel-soft overflow-hidden">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-white/20">
+                <div className="flex items-center space-x-2 mb-3">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                      entry.type === "FREEWRITE"
+                        ? "bg-gradient-to-r from-[#4A90E2] to-[#5BA3F5] text-white shadow-lg"
+                        : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white shadow-lg"
+                    }`}
+                  >
+                    {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                      entry.visibility === "PRIVATE"
+                        ? "glass text-[#1a4d3e]"
+                        : "bg-gradient-to-r from-[#52C9A2] to-[#63D4B3] text-white"
+                    }`}
+                  >
+                    {entry.visibility === "PRIVATE" ? "private" : "shared"}
+                  </span>
+                  {entry.qualityEmoji && (
+                    <span className="text-xl">{entry.qualityEmoji}</span>
+                  )}
+                </div>
+                <h1 className="text-2xl font-bold text-[#1a4d3e]">
+                  Entry from {formatDate(entry.createdAt.toISOString())}
+                </h1>
+                <div className="mt-2 text-sm text-[#1a4d3e]/60 flex items-center gap-2 flex-wrap">
+                  <span>Created: {formatDate(entry.createdAt.toISOString())}</span>
+                  {entry.updatedAt.toISOString() !== entry.createdAt.toISOString() && (
+                    <>
+                      <span>•</span>
+                      <span>Updated: {formatDate(entry.updatedAt.toISOString())}</span>
+                    </>
+                  )}
+                </div>
               </div>
-              <h1 className="text-2xl font-bold text-[#1a4d3e]">
-                Entry from {formatDate(entry.createdAt.toISOString())}
-              </h1>
-              <div className="mt-2 text-sm text-[#1a4d3e]/60 flex items-center gap-2 flex-wrap">
-                <span>Created: {formatDate(entry.createdAt.toISOString())}</span>
-                {entry.updatedAt.toISOString() !== entry.createdAt.toISOString() && (
-                  <>
-                    <span>•</span>
-                    <span>Updated: {formatDate(entry.updatedAt.toISOString())}</span>
-                  </>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                {entry.content ? (
+                  <div className="max-w-none">
+                    <MarkdownContentLoader content={entry.content} />
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-[#1a4d3e]/50">
+                    <p>No content available for this entry.</p>
+                  </div>
                 )}
+
+                <MediaViewer mediaUrls={entry.mediaUrls} />
               </div>
             </div>
-
-            {/* Content */}
-            <div className="px-6 py-6">
-              {entry.content ? (
-                <div className="max-w-none">
-                  <MarkdownContent content={entry.content} />
-                </div>
-              ) : (
-                <div className="text-center py-8 text-[#1a4d3e]/50">
-                  <div className="text-4xl mb-2">📝</div>
-                  <p>No content available for this entry.</p>
-                </div>
-              )}
-
-              <MediaViewer mediaUrls={entry.mediaUrls} />
-            </div>
-          </div>
+          </AnimatedSection>
         </div>
       </main>
     </div>

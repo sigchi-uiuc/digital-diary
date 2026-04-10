@@ -232,8 +232,7 @@ export default function EditEntryForm({ entry }: Props) {
                   onChange={(e) => setVisibility(e.target.value as "PRIVATE" | "PUBLIC" | "PROTECTED")}
                 >
                   <option value="PRIVATE">Private — Only you can see this</option>
-                  <option value="PROTECTED">Protected — Visible to friends</option>
-                  <option value="PUBLIC">Public — Visible to everyone</option>
+                  <option value="PROTECTED">Shared with friends</option>
                 </select>
               </div>
 

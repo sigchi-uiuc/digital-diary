@@ -1,7 +1,9 @@
 import Link from "next/link"
+import Image from "next/image"
 import { notFound, redirect } from "next/navigation"
 import { getAppSession } from "@/lib/auth"
 import { getFriendProfile } from "@/lib/actions/friends"
+import AnimatedSection from "@/components/AnimatedSection"
 
 function displayName(user: {
   username: string
@@ -72,11 +74,12 @@ export default async function FriendProfilePage({
 
       <main className="max-w-5xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0 space-y-6">
+          <AnimatedSection preset="reveal">
           <section className="panel-soft p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-2xl font-semibold flex items-center justify-center overflow-hidden shrink-0">
+              <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-2xl font-semibold flex items-center justify-center overflow-hidden shrink-0">
                 {friend.profilePicture ? (
-                  <img src={friend.profilePicture} alt={displayName(friend)} className="w-full h-full object-cover" />
+                  <Image src={friend.profilePicture} alt={displayName(friend)} fill className="object-cover" />
                 ) : (
                   <span>{initials(friend)}</span>
                 )}
@@ -93,11 +96,11 @@ export default async function FriendProfilePage({
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-2xl bg-white/60 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-[#1a4d3e]/50">Visible Entries</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-[#1a4d3e]/50">Shared Entries</p>
                 <p className="mt-2 text-2xl font-semibold text-[#1a4d3e]">
                   {friend.publicEntriesCount + friend.protectedEntriesCount}
                 </p>
-                <p className="text-sm text-[#1a4d3e]/65">Public and friends-only posts you can view</p>
+                <p className="text-sm text-[#1a4d3e]/65">Entries shared with friends</p>
               </div>
 
               <div className="rounded-2xl bg-white/60 p-4">
@@ -107,7 +110,9 @@ export default async function FriendProfilePage({
               </div>
             </div>
           </section>
+          </AnimatedSection>
 
+          <AnimatedSection preset="reveal" delay={0.15}>
           <section className="panel-soft p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold text-[#1a4d3e]">Recent Entries</h2>
@@ -134,14 +139,8 @@ export default async function FriendProfilePage({
                       >
                         {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"}
                       </span>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          entry.visibility === "PUBLIC"
-                            ? "bg-[#52C9A2]/20 text-[#1a4d3e]"
-                            : "bg-[#F5C26B]/25 text-[#7A4B00]"
-                        }`}
-                      >
-                        {entry.visibility === "PUBLIC" ? "Public" : "Friends"}
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#52C9A2]/20 text-[#1a4d3e]">
+                        shared
                       </span>
                       {entry.qualityEmoji && <span className="text-base leading-none">{entry.qualityEmoji}</span>}
                     </div>
@@ -153,6 +152,7 @@ export default async function FriendProfilePage({
               </div>
             )}
           </section>
+          </AnimatedSection>
         </div>
       </main>
     </div>

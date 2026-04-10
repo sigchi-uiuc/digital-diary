@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { motion, AnimatePresence } from "framer-motion"
+import { dropdownVariants } from "@/lib/animations"
 
 export default function CreateEntryDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -31,16 +33,23 @@ export default function CreateEntryDropdown() {
         </button>
       </div>
 
+      <AnimatePresence>
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
+          <div
+            className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Dropdown menu */}
-          <div className="absolute right-0 z-20 mt-3 w-72 origin-top-right bg-white rounded-3xl shadow-2xl overflow-hidden">
+          <motion.div
+            className="absolute right-0 z-20 mt-3 w-72 origin-top-right bg-white rounded-3xl shadow-2xl overflow-hidden"
+            variants={dropdownVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
             <div className="py-2">
               <div className="px-5 py-3 text-xs font-semibold text-[#1a4d3e]/70 uppercase tracking-wider border-b border-white/20">
                 Choose Entry Type
@@ -82,9 +91,10 @@ export default function CreateEntryDropdown() {
                 </div>
               </Link>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
     </div>
   )
 }

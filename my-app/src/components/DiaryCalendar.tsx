@@ -1,11 +1,22 @@
 "use client"
 
+import { useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { scaleIn } from "@/lib/animations"
 import Calendar from "react-calendar"
-import { getEntries } from "@/lib/actions/entries"
 import "react-calendar/dist/Calendar.css"
 
-export default function DiaryCalendar() {
+interface EntryStub {
+  id: string
+  createdAt: Date
+}
+
+interface Props {
+  entries: EntryStub[]
+}
+
+export default function DiaryCalendar({ entries }: Props) {
   const router = useRouter()
 
   const toLocalDateStr = (d: Date) => {
@@ -15,26 +26,35 @@ export default function DiaryCalendar() {
     return `${y}-${m}-${day}`
   }
 
-  const handleDateClick = async (clickedDate: Date) => {
-    const formatted = toLocalDateStr(clickedDate)
-    const entries = await getEntries()
-    const match = entries.find(
-      (e) => toLocalDateStr(new Date(e.createdAt)) === formatted
-    )
-    if (match) {
-      router.push(`/entries/${match.id}`)
+  const entryMap = useMemo(() => {
+    const map = new Map<string, string>()
+    entries.forEach((e) => {
+      map.set(toLocalDateStr(new Date(e.createdAt)), e.id)
+    })
+    return map
+  }, [entries])
+
+  const handleDateClick = (clickedDate: Date) => {
+    const id = entryMap.get(toLocalDateStr(clickedDate))
+    if (id) {
+      router.push(`/entries/${id}`)
     } else {
       alert("No entry for this day")
     }
   }
 
   return (
-    <div className="glass rounded-2xl p-4">
+    <motion.div
+      className="rounded-2xl"
+      variants={scaleIn}
+      initial="hidden"
+      animate="visible"
+    >
       <Calendar
         onClickDay={handleDateClick}
         value={new Date()}
         className="w-full rounded-xl"
       />
-    </div>
+    </motion.div>
   )
 }

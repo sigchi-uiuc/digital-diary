@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { motion, AnimatePresence } from "framer-motion"
+import { slideInRight } from "@/lib/animations"
+import { SparkleIcon, ChatBubbleIcon } from "@/components/icons"
 import { moodBasedPrompts, emojiOptions, getDayActivityQuestions } from "@/lib/guidedPrompts"
 import { getMoodGradient } from "@/lib/moodColors"
 import GestureEmoji from "@/components/GestureEmoji"
@@ -200,8 +203,9 @@ export default function CreateGuidedEntry() {
               )}
 
               {/* Step 1: Mood Selection */}
+              <AnimatePresence mode="wait">
               {currentStep === "mood" && (
-                <div className="space-y-6">
+                <motion.div key="mood" className="space-y-6" variants={slideInRight} initial="hidden" animate="visible" exit="exit">
                   <div className="text-center">
                     <h2 className="text-xl font-semibold text-[#1a4d3e] mb-2">
                       How are you feeling right now?
@@ -213,15 +217,18 @@ export default function CreateGuidedEntry() {
 
                   <div className="flex justify-center gap-3 flex-wrap">
                     {emojiOptions.map((option) => (
-                      <button
+                      <motion.button
                         key={option.emoji}
                         type="button"
                         onClick={() => handleMoodSelection(option.emoji)}
-                        className="flex flex-col items-center p-4 rounded-2xl border-2 border-white/50 glass hover:border-[#4A90E2] hover:bg-[#4A90E2]/10 transition-all hover:scale-105"
+                        className="flex flex-col items-center p-4 rounded-2xl border-2 border-white/50 glass hover:border-[#4A90E2] hover:bg-[#4A90E2]/10 transition-colors"
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.94 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
                         <span className="text-4xl mb-2">{option.emoji}</span>
                         <span className="text-sm text-[#1a4d3e] font-medium">{option.label}</span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
 
@@ -233,12 +240,12 @@ export default function CreateGuidedEntry() {
                     </p>
                     <GestureEmoji onGestureSelect={handleMoodSelection} mode={trackingMode} />
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Step 2: Guided Prompts */}
               {currentStep === "prompts" && selectedPromptData && (
-                <div className="space-y-6">
+                <motion.div key="prompts" className="space-y-6" variants={slideInRight} initial="hidden" animate="visible" exit="exit">
                   <button
                     type="button"
                     onClick={() => setCurrentStep("mood")}
@@ -292,16 +299,15 @@ export default function CreateGuidedEntry() {
                       onChange={(e) => setVisibility(e.target.value)}
                     >
                       <option value="PRIVATE">Private — Only you can see this</option>
-                      <option value="PROTECTED">Protected — Visible to friends</option>
-                      <option value="PUBLIC">Public — Visible to everyone</option>
+                      <option value="PROTECTED">Shared with friends</option>
                     </select>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Step 2.5: Confirm Follow-up */}
               {currentStep === "confirm-followup" && (
-                <div className="space-y-6">
+                <motion.div key="confirm-followup" className="space-y-6" variants={slideInRight} initial="hidden" animate="visible" exit="exit">
                   <button
                     type="button"
                     onClick={() => setCurrentStep("prompts")}
@@ -315,7 +321,9 @@ export default function CreateGuidedEntry() {
 
                   <div className="panel-soft p-6">
                     <div className="text-center">
-                      <div className="text-4xl mb-4">🤖</div>
+                      <div className="flex justify-center text-[#4A90E2] mb-4">
+                        <SparkleIcon className="w-10 h-10" />
+                      </div>
                       <h3 className="text-lg font-semibold text-[#1a4d3e] mb-2">
                         Would you like AI-generated follow-up questions?
                       </h3>
@@ -344,12 +352,12 @@ export default function CreateGuidedEntry() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Step 3: Follow-up Questions */}
               {currentStep === "followup" && followUpQuestions.length > 0 && (
-                <div className="space-y-6">
+                <motion.div key="followup" className="space-y-6" variants={slideInRight} initial="hidden" animate="visible" exit="exit">
                   <button
                     type="button"
                     onClick={() => setCurrentStep("confirm-followup")}
@@ -363,7 +371,7 @@ export default function CreateGuidedEntry() {
 
                   <div className="panel-soft p-4">
                     <div className="flex items-center space-x-3">
-                      <span className="text-2xl">💭</span>
+                      <ChatBubbleIcon className="w-6 h-6 text-[#4A90E2] shrink-0" />
                       <div>
                         <h3 className="font-semibold text-[#1a4d3e]">Personalized Follow-up Questions</h3>
                         <p className="text-sm text-[#1a4d3e]/70 mt-1">
@@ -389,8 +397,9 @@ export default function CreateGuidedEntry() {
                       />
                     </div>
                   ))}
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               {/* Actions */}
               {currentStep === "prompts" && (

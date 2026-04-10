@@ -1,4 +1,9 @@
+"use client"
+
 import Link from "next/link"
+import Image from "next/image"
+import { motion } from "framer-motion"
+import { staggerContainer, listItem, sectionReveal } from "@/lib/animations"
 
 interface FriendEntry {
   id: string
@@ -52,27 +57,32 @@ export default function RecentFriendEntries({ variant, initialEntries }: Props) 
   const entries = initialEntries.slice(0, limit)
 
   return (
-    <div className={`panel-soft p-5 ${variant === "home" ? "mt-6" : ""}`}>
+    <motion.div
+      className={`panel-soft p-5 ${variant === "home" ? "mt-6" : ""}`}
+      variants={sectionReveal}
+      initial="hidden"
+      animate="visible"
+    >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-[#1a4d3e]">Recent Friend Entries</h2>
         {initialEntries.length > 0 && (
-          <span className="text-xs text-[#1a4d3e]/60">{initialEntries.length} public entries</span>
+          <span className="text-xs text-[#1a4d3e]/60">{initialEntries.length} shared entries</span>
         )}
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-[#1a4d3e]/70">No public entries from friends yet.</p>
+        <p className="text-sm text-[#1a4d3e]/70">No shared entries from friends yet.</p>
       ) : (
-        <div className="space-y-3">
+        <motion.div className="space-y-3" variants={staggerContainer} initial="hidden" animate="visible">
           {entries.map((entry) => (
+            <motion.div key={entry.id} variants={listItem}>
             <Link
-              key={entry.id}
               href={`/friends/${entry.user.id}`}
               className="flex gap-3 rounded-2xl bg-white/50 p-3 hover:bg-white/70 transition-all"
             >
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0">
+              <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0">
                 {entry.user.profilePicture ? (
-                  <img src={entry.user.profilePicture} alt={displayName(entry.user)} className="w-full h-full object-cover" />
+                  <Image src={entry.user.profilePicture} alt={displayName(entry.user)} fill className="object-cover" />
                 ) : (
                   <span>{initials(entry.user)}</span>
                 )}
@@ -94,9 +104,10 @@ export default function RecentFriendEntries({ variant, initialEntries }: Props) 
                 <span className="text-[11px] text-[#1a4d3e]/50">{formatDate(entry.createdAt)}</span>
               </div>
             </Link>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }
