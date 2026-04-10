@@ -13,7 +13,8 @@ export default function MediaViewer({ mediaUrls }: MediaViewerProps) {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {mediaUrls.map((url, index) => {
           const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-          const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url)
+          const isAudio = /\/voice-[^/]+\.(webm|ogg|wav|mp3)$/i.test(url)
+          const isVideo = !isAudio && /\.(mp4|webm|ogg|mov)$/i.test(url)
 
           return (
             <div key={index} className="relative group">
@@ -24,6 +25,13 @@ export default function MediaViewer({ mediaUrls }: MediaViewerProps) {
                   className="w-full h-48 object-cover rounded-xl border border-white/30 cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => window.open(url, "_blank")}
                 />
+              ) : isAudio ? (
+                <div className="glass rounded-xl p-4 flex items-center gap-3 col-span-full">
+                  <span className="text-2xl shrink-0">&#127897;</span>
+                  <audio controls src={url} className="flex-1 min-w-0">
+                    Your browser does not support the audio tag.
+                  </audio>
+                </div>
               ) : isVideo ? (
                 <video
                   src={url}

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { moodBasedPrompts, emojiOptions, getDayActivityQuestions } from "@/lib/guidedPrompts"
 import { getMoodGradient } from "@/lib/moodColors"
 import GestureEmoji from "@/components/GestureEmoji"
+import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
 import { getTrackingMode } from "@/lib/actions/profile"
 import { generateFollowUpQuestions } from "@/lib/actions/journal"
@@ -22,6 +23,7 @@ export default function CreateGuidedEntry() {
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
   const [trackingMode, setTrackingMode] = useState<"hand" | "face">("hand")
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function CreateGuidedEntry() {
         content: initialContent + followUpContent,
         visibility,
         qualityEmoji: selectedMood,
+        mediaUrls: voiceUrl ? [voiceUrl] : [],
       })
       router.push("/")
     } catch (err) {
@@ -273,6 +276,10 @@ export default function CreateGuidedEntry() {
                       />
                     </div>
                   ))}
+
+                  <div>
+                    <VoiceRecorder voiceUrl={voiceUrl} onVoiceChange={setVoiceUrl} />
+                  </div>
 
                   <div>
                     <label htmlFor="visibility" className="block text-sm font-medium text-[#1a4d3e] mb-2">

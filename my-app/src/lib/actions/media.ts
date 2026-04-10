@@ -6,6 +6,48 @@ import { join } from "path"
 import { existsSync } from "fs"
 import sharp from "sharp"
 
+export async function uploadAudio(formData: FormData) {
+  const session = await getAppSession()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const file = formData.get("audio") as File
+  if (!file) throw new Error("No audio file uploaded")
+
+  const allowedAudioTypes = ["audio/webm", "audio/ogg", "audio/wav", "audio/mpeg"]
+  if (!allowedAudioTypes.includes(file.type)) {
+    throw new Error("Invalid audio file type.")
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    throw new Error("Audio file too large. Please upload a file smaller than 50MB.")
+  }
+
+  const mimeToExt: Record<string, string> = {
+    "audio/webm": "webm",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/mpeg": "mp3",
+  }
+  const fileExtension = mimeToExt[file.type] ?? "webm"
+
+  const uploadsDir = join(process.cwd(), "public", "uploads", "entries")
+  if (!existsSync(uploadsDir)) {
+    await mkdir(uploadsDir, { recursive: true })
+  }
+
+  const fileName = `voice-${session.user.id}-${Date.now()}.${fileExtension}`
+  const filePath = join(uploadsDir, fileName)
+
+  const bytes = await file.arrayBuffer()
+  await writeFile(filePath, Buffer.from(new Uint8Array(bytes)))
+
+  return {
+    url: `/uploads/entries/${fileName}`,
+    type: file.type,
+    size: file.size,
+  }
+}
+
 export async function uploadMedia(formData: FormData) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")

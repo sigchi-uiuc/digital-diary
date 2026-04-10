@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import MediaUpload from "@/components/MediaUpload"
+import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
 import { getMoodGradient } from "@/lib/moodColors"
 
@@ -23,6 +24,7 @@ export default function CreateFreewriteEntry() {
   const [visibility, setVisibility] = useState("PRIVATE")
   const [qualityEmoji, setQualityEmoji] = useState("")
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
@@ -59,7 +61,7 @@ export default function CreateFreewriteEntry() {
         content,
         visibility,
         qualityEmoji: qualityEmoji || null,
-        mediaUrls,
+        mediaUrls: voiceUrl ? [...mediaUrls, voiceUrl] : mediaUrls,
       })
       router.push("/")
     } catch (err) {
@@ -143,6 +145,11 @@ export default function CreateFreewriteEntry() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Voice Note */}
+              <div>
+                <VoiceRecorder voiceUrl={voiceUrl} onVoiceChange={setVoiceUrl} />
               </div>
 
               {/* Media Upload */}
