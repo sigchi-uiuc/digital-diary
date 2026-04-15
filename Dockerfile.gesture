@@ -16,10 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY my-app/src/app/gesture_server.py .
 
-# Download MediaPipe models at build time — not stored in git
+# Download MediaPipe face model at build time — not stored in git
 RUN apt-get update && apt-get install -y --no-install-recommends wget \
-    && wget -q -O hand_landmarker.task \
-       https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task \
     && wget -q -O face_landmarker.task \
        https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task \
     && apt-get purge -y --auto-remove wget \

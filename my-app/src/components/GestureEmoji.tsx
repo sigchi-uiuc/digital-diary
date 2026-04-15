@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scaleIn, fadeIn, fadeUp } from "@/lib/animations";
-import { HandIcon } from "@/components/icons";
 
 type Gesture = "fantastic" | "good" | "okay" | "sad" | "terrible" | null;
 
@@ -16,10 +15,9 @@ const EMOJI_MAP: Record<NonNullable<Gesture>, string> = {
 
 interface GestureEmojiProps {
     onGestureSelect?: (emoji: string) => void;
-    mode?: "hand" | "face";
 }
 
-export default function GestureEmoji({ onGestureSelect, mode = "hand" }: GestureEmojiProps) {
+export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
     const [gesture, setGesture]                 = useState<Gesture>(null);
     const [confirmed, setConfirmed]             = useState(false);
     const [cameraAvailable, setCameraAvailable] = useState(false);
@@ -86,7 +84,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                     sendingRef.current = true;
                     try {
                         const buf = await blob.arrayBuffer();
-                        const res = await fetch(`/api/gesture?mode=${mode}`, {
+                        const res = await fetch(`/api/gesture?mode=face`, {
                             method: "POST",
                             headers: { "Content-Type": "application/octet-stream" },
                             body: buf,
@@ -99,7 +97,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                     } catch { /* server unavailable */ }
                     finally { sendingRef.current = false; }
                 }, "image/jpeg", 0.7);
-            }, 150); // ~7 fps — enough for gesture detection, leaves room for round-trip
+            }, 800); // ~1.2 fps — face expressions don't need high frequency
         }
 
         start();
@@ -107,7 +105,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
             cancelled = true;
             stopAll();
         };
-    }, [mode, stopAll]);
+    }, [stopAll]);
 
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
@@ -116,9 +114,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
         }
     };
 
-    const instructionText = mode === "face"
-        ? "Show your facial expression — smile big, small, neutral, slight frown, or frown"
-        : "Point your thumb: all the way up, slightly up, sideways, slightly down, or all the way down";
+    const instructionText = "Show your facial expression — smile big, small, neutral, slight frown, or frown";
 
     return (
         <div className="flex flex-col items-center gap-3">
@@ -171,9 +167,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                 >
                     {gesture
                         ? <span>{EMOJI_MAP[gesture]}</span>
-                        : mode === "face"
-                            ? <span style={{ fontSize: "60px" }}>😐</span>
-                            : <HandIcon className="w-14 h-14 text-[#1a4d3e]/40" />
+                        : <span style={{ fontSize: "60px" }}>😐</span>
                     }
                 </motion.div>
             </AnimatePresence>

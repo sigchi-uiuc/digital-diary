@@ -11,7 +11,6 @@ import { getMoodGradient } from "@/lib/moodColors"
 import GestureEmoji from "@/components/GestureEmoji"
 import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
-import { getTrackingMode } from "@/lib/actions/profile"
 import { generateFollowUpQuestions } from "@/lib/actions/journal"
 
 export default function CreateGuidedEntry() {
@@ -25,7 +24,6 @@ export default function CreateGuidedEntry() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
-  const [trackingMode, setTrackingMode] = useState<"hand" | "face">("face")
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
   const router = useRouter()
 
@@ -47,12 +45,6 @@ export default function CreateGuidedEntry() {
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    getTrackingMode().then(mode => {
-      if (mode === "face" || mode === "hand") setTrackingMode(mode)
-    }).catch(() => {})
   }, [])
 
   const handleMoodSelection = (mood: string) => {
@@ -234,11 +226,9 @@ export default function CreateGuidedEntry() {
 
                   <div className="border-t border-white/20 pt-6">
                     <p className="text-center text-sm text-[#1a4d3e]/60 mb-3">
-                      {trackingMode === "face"
-                        ? "Or detect with your facial expression"
-                        : "Or indicate with a hand gesture: thumb up, slightly up, sideways, slightly down, or down"}
+                      Or detect with your facial expression
                     </p>
-                    <GestureEmoji onGestureSelect={handleMoodSelection} mode={trackingMode} />
+                    <GestureEmoji onGestureSelect={handleMoodSelection} />
                   </div>
                 </motion.div>
               )}
