@@ -22,6 +22,7 @@ services:
       GOOGLE_CLIENT_ID:      "${GOOGLE_CLIENT_ID}"
       GOOGLE_CLIENT_SECRET:  "${GOOGLE_CLIENT_SECRET}"
       GESTURE_SERVER_URL:    "http://gesture-server:8000"
+      ANTHROPIC_API_KEY:  "${ANTHROPIC_API_KEY}"
     depends_on:
       - gesture-server
     networks:

@@ -23,6 +23,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
     const [gesture, setGesture]                 = useState<Gesture>(null);
     const [confirmed, setConfirmed]             = useState(false);
     const [cameraAvailable, setCameraAvailable] = useState(false);
+    const [cameraError, setCameraError]         = useState<string | null>(null);
 
     const videoRef    = useRef<HTMLVideoElement>(null);
     const canvasRef   = useRef<HTMLCanvasElement>(null);
@@ -41,16 +42,23 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
         setGesture(null);
         setConfirmed(false);
         setCameraAvailable(false);
+        setCameraError(null);
         stopAll();
 
         let cancelled = false;
 
         async function start() {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setCameraError("Camera API not available — ensure the page is served over HTTPS.");
+                return;
+            }
             let stream: MediaStream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            } catch {
-                return; // camera denied or unavailable
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                setCameraError(msg);
+                return;
             }
             if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
@@ -116,6 +124,12 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
         <div className="flex flex-col items-center gap-3">
             {/* Hidden canvas used to capture frames */}
             <canvas ref={canvasRef} className="hidden" />
+
+            {cameraError && (
+                <p className="text-xs text-red-500/80 text-center max-w-xs">
+                    Camera unavailable: {cameraError}
+                </p>
+            )}
 
             <AnimatePresence>
                 {cameraAvailable && (
