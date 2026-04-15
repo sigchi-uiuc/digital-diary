@@ -24,7 +24,7 @@ pipeline {
         stage('Deploy') {
             when { branch 'prod' }
             steps {
-                withCredentials([file(credentialsId: 'env.txt', variable: 'ENV_FILE')]) {
+                withCredentials([file(credentialsId: 'diary-env-file', variable: 'ENV_FILE')]) {
                     sh """
                         cp \$ENV_FILE .env
                         docker compose up -d --remove-orphans
