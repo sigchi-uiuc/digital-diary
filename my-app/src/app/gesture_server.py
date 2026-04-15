@@ -15,11 +15,13 @@ import uvicorn
 HAND_MODEL_PATH = os.path.join(os.path.dirname(__file__), "hand_landmarker.task")
 FACE_MODEL_PATH = os.path.join(os.path.dirname(__file__), "face_landmarker.task")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3444").split(",")
+ALLOW_ALL = ALLOWED_ORIGINS == ["*"]
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"] if ALLOW_ALL else ALLOWED_ORIGINS,
+    allow_origin_regex=".*" if ALLOW_ALL else None,
     allow_methods=["*"],
     allow_headers=["*"],
 )

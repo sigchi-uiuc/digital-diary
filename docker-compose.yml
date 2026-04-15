@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile.gesture
     restart: unless-stopped
     environment:
-      # Only Next.js can reach this — no CORS needed, no public exposure
-      ALLOWED_ORIGINS: "http://nextjs:3444"
+      # Internal only — not on proxy network, so * is safe here
+      ALLOWED_ORIGINS: "*"
     networks:
       - internal   # NOT on proxy — never reachable from outside
 
