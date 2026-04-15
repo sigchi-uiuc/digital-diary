@@ -14,26 +14,19 @@ pipeline {
             }
         }
 
-        stage('Lint & Type-check') {
-            steps {
-                sh 'npm ci'
-                sh 'npx tsc --noEmit'
-            }
-        }
-
         stage('Build images') {
             steps {
+                // Type errors fail the build here — tsc runs inside the Next.js Docker build
                 sh "docker compose build --no-cache"
             }
         }
 
         stage('Deploy') {
-            when { branch 'main' }
+            when { branch 'prod' }
             steps {
                 withCredentials([file(credentialsId: 'diary-env-file', variable: 'ENV_FILE')]) {
                     sh """
                         cp \$ENV_FILE .env
-                        docker network create npm_network 2>/dev/null || true
                         docker compose up -d --remove-orphans
                         docker image prune -f
                     """
