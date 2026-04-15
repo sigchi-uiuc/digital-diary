@@ -144,6 +144,7 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                             ref={videoRef}
                             muted
                             playsInline
+                            autoPlay
                             className="w-full h-full object-cover scale-x-[-1]"
                         />
                         <motion.div

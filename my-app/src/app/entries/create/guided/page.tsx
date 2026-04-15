@@ -25,7 +25,7 @@ export default function CreateGuidedEntry() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
-  const [trackingMode, setTrackingMode] = useState<"hand" | "face">("hand")
+  const [trackingMode, setTrackingMode] = useState<"hand" | "face">("face")
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
   const router = useRouter()
 
