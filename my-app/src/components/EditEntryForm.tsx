@@ -4,8 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { motion, AnimatePresence } from "framer-motion"
 import { moodBasedPrompts, emojiOptions } from "@/lib/guidedPrompts"
 import { updateEntry } from "@/lib/actions/entries"
+import { sectionReveal, staggerContainerSlow, cardVariant, navSlideDown, overlayFade } from "@/lib/animations"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
@@ -113,7 +115,12 @@ export default function EditEntryForm({ entry }: Props) {
 
   return (
     <div className="min-h-screen relative z-10">
-      <nav className="glass-strong sticky top-0 z-50">
+      <motion.nav
+        className="glass-strong sticky top-0 z-50"
+        variants={navSlideDown}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link
@@ -125,11 +132,16 @@ export default function EditEntryForm({ entry }: Props) {
             <span className="text-xs text-[#1a4d3e]/60 hidden sm:block">{currentDateTime}</span>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <div className="panel-soft overflow-hidden">
+          <motion.div
+            className="panel-soft overflow-hidden"
+            variants={sectionReveal}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="px-6 py-5 border-b border-white/20">
               <h1 className="text-2xl font-bold text-[#1a4d3e]">
                 Edit {entry.type === "FREEWRITE" ? "Freewrite" : "Guided"} Entry
@@ -139,16 +151,31 @@ export default function EditEntryForm({ entry }: Props) {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {error && (
-                <div className="glass-strong rounded-2xl border border-red-200/50 p-4">
-                  <p className="text-red-700 font-medium">{error}</p>
-                </div>
-              )}
+            <motion.form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6"
+              variants={staggerContainerSlow}
+              initial="hidden"
+              animate="visible"
+            >
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    key="error"
+                    variants={overlayFade}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="glass-strong rounded-2xl border border-red-200/50 p-4"
+                  >
+                    <p className="text-red-700 font-medium">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Freewrite Content */}
               {entry.type === "FREEWRITE" && (
-                <div>
+                <motion.div variants={cardVariant}>
                   <label htmlFor="content" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                     What&apos;s on your mind?
                   </label>
@@ -161,12 +188,12 @@ export default function EditEntryForm({ entry }: Props) {
                     />
                   </div>
                   <p className="mt-1 text-xs text-[#1a4d3e]/50">{content.length} characters</p>
-                </div>
+                </motion.div>
               )}
 
               {/* Guided Content */}
               {entry.type === "GUIDED" && promptData && (
-                <div className="space-y-6">
+                <motion.div className="space-y-6" variants={cardVariant}>
                   <div className="panel-soft p-4">
                     <div className="flex items-center space-x-3">
                       <span className="text-3xl">{entry.qualityEmoji}</span>
@@ -185,7 +212,7 @@ export default function EditEntryForm({ entry }: Props) {
                       <textarea
                         rows={4}
                         className="input-glass w-full px-4 py-3 focus:ring-2 focus:ring-[#4A90E2] resize-none"
-                        placeholder="Share your thoughts..."
+                        placeholder="Share your thoughts…"
                         value={responses[index] || ""}
                         onChange={(e) =>
                           setResponses((prev) => ({ ...prev, [index]: e.target.value }))
@@ -193,35 +220,37 @@ export default function EditEntryForm({ entry }: Props) {
                       />
                     </div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Mood */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label className="block text-sm font-medium text-[#1a4d3e] mb-4 text-center">
                   How was your day today?
                 </label>
                 <div className="flex justify-center gap-3 flex-wrap">
                   {emojiOptions.map((option) => (
-                    <button
+                    <motion.button
                       key={option.emoji}
                       type="button"
-                      className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
+                      className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all ${
                         qualityEmoji === option.emoji
                           ? "border-[#4A90E2] bg-[#4A90E2]/10"
                           : "border-white/50 glass hover:border-white/70"
                       }`}
                       onClick={() => setQualityEmoji(qualityEmoji === option.emoji ? "" : option.emoji)}
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       <span className="text-3xl mb-1">{option.emoji}</span>
                       <span className="text-xs text-[#1a4d3e]/70">{option.label}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Visibility */}
-              <div>
+              <motion.div variants={cardVariant}>
                 <label htmlFor="visibility" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                   Entry Visibility
                 </label>
@@ -234,26 +263,30 @@ export default function EditEntryForm({ entry }: Props) {
                   <option value="PRIVATE">Private — Only you can see this</option>
                   <option value="PROTECTED">Shared with friends</option>
                 </select>
-              </div>
+              </motion.div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-6 border-t border-white/20">
+              <motion.div
+                className="flex items-center justify-between pt-6 border-t border-white/20"
+                variants={cardVariant}
+              >
                 <Link
                   href={`/entries/${entry.id}`}
                   className="glass rounded-2xl px-4 py-2 text-sm font-medium text-[#1a4d3e] hover:bg-white/40 transition-all"
                 >
                   Cancel
                 </Link>
-                <button
+                <motion.button
                   type="submit"
                   disabled={isSaving}
                   className="btn-glossy rounded-2xl px-6 py-2.5 text-white font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileTap={{ scale: 0.97 }}
                 >
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
+                  {isSaving ? "Saving…" : "Save Changes"}
+                </motion.button>
+              </motion.div>
+            </motion.form>
+          </motion.div>
         </div>
       </main>
     </div>

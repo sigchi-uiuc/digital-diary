@@ -129,3 +129,54 @@ export const mediaItem: Variants = {
     transition: { ...snappySpring },
   },
 }
+
+export const navSlideDown: Variants = {
+  hidden: { opacity: 0, y: -16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+}
+
+export const pulseScale: Variants = {
+  hidden: { scale: 0.8, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { ...snappySpring },
+  },
+}
+
+export const emptyState: Variants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+}
+
+export const overlayFade: Variants = {
+  hidden: { opacity: 0, height: 0, overflow: "hidden" },
+  visible: {
+    opacity: 1,
+    height: "auto",
+    transition: { duration: 0.25, ease: "easeOut" },
+  },
+  exit: {
+    opacity: 0,
+    height: 0,
+    transition: { duration: 0.2, ease: "easeIn" },
+  },
+}
+
+export const countPop: Variants = {
+  hidden: { scale: 0.8, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { ...snappySpring },
+  },
+}

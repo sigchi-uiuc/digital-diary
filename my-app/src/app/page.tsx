@@ -14,6 +14,7 @@ import DiaryCalendarPopup from "@/components/DiaryCalendar"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
 import StatsBar from "@/components/StatsBar"
 import AnimatedSection from "@/components/AnimatedSection"
+import AnimatedNav from "@/components/AnimatedNav"
 import { BookIcon } from "@/components/icons"
 
 async function getUserStats(userId: string) {
@@ -32,7 +33,7 @@ async function getUserStats(userId: string) {
 function LandingPage() {
   return (
     <div className="min-h-screen relative z-10">
-      <nav className="glass-strong sticky top-0 z-50">
+      <AnimatedNav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
@@ -48,7 +49,7 @@ function LandingPage() {
             </div>
           </div>
         </div>
-      </nav>
+      </AnimatedNav>
 
       <main className="max-w-4xl mx-auto py-12 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
@@ -97,7 +98,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen relative z-10">
-      <nav className="glass-strong sticky top-0 z-50">
+      <AnimatedNav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
@@ -112,7 +113,7 @@ export default async function Home() {
             </div>
           </div>
         </div>
-      </nav>
+      </AnimatedNav>
 
       <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0 space-y-8">
@@ -149,7 +150,7 @@ export default async function Home() {
             {/* Right column — calendar */}
             <div className="lg:col-span-5 space-y-8">
               <AnimatedSection preset="reveal" delay={0.2}>
-                <Suspense fallback={<div className="panel-soft p-5 animate-pulse h-48 rounded-2xl" />}>
+                <Suspense fallback={<div className="panel-soft skeleton h-48 rounded-2xl" />}>
                   <CalendarEvents />
                 </Suspense>
               </AnimatedSection>

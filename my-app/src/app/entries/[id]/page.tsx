@@ -4,6 +4,7 @@ import { getAppSession } from "@/lib/auth"
 import { getEntry } from "@/lib/actions/entries"
 import MediaViewer from "@/components/MediaViewer"
 import AnimatedSection from "@/components/AnimatedSection"
+import AnimatedNav from "@/components/AnimatedNav"
 import MarkdownContentLoader from "@/components/MarkdownContentLoader"
 
 function formatDate(dateString: string) {
@@ -31,7 +32,7 @@ export default async function ViewEntry({
 
   return (
     <div className="min-h-screen relative z-10">
-      <nav className="glass-strong sticky top-0 z-50">
+      <AnimatedNav className="glass-strong sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link
@@ -48,7 +49,7 @@ export default async function ViewEntry({
             </Link>
           </div>
         </div>
-      </nav>
+      </AnimatedNav>
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">

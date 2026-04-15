@@ -6,8 +6,9 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { sectionReveal, staggerContainerSlow, cardVariant } from "@/lib/animations"
+import { sectionReveal, staggerContainerSlow, cardVariant, navSlideDown } from "@/lib/animations"
 import { updateProfile, uploadProfilePicture } from "@/lib/actions/profile"
+import { HandIcon } from "@/components/icons"
 
 interface UserProfile {
   id: string
@@ -119,7 +120,12 @@ export default function EditProfileForm({ initialProfile }: Props) {
 
   return (
     <div className="min-h-screen relative z-10">
-      <nav className="glass-strong sticky top-0 z-50">
+      <motion.nav
+        className="glass-strong sticky top-0 z-50"
+        variants={navSlideDown}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link
@@ -133,7 +139,7 @@ export default function EditProfileForm({ initialProfile }: Props) {
             </span>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       <main className="max-w-4xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
@@ -259,36 +265,40 @@ export default function EditProfileForm({ initialProfile }: Props) {
                   Choose how to detect your mood when creating entries
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setTrackingMode("hand")}
-                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all hover:scale-[1.02] ${
+                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${
                       trackingMode === "hand"
                         ? "border-[#4A90E2] bg-[#4A90E2]/10"
                         : "border-white/50 glass hover:border-white/70"
                     }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
                   >
-                    <span className="text-3xl mb-2">🤚</span>
+                    <HandIcon className="w-8 h-8 text-[#1a4d3e] mb-2" />
                     <span className="text-sm font-medium text-[#1a4d3e]">Hand Tracking</span>
                     <span className="text-xs text-[#1a4d3e]/60 mt-1 text-center">
                       Point your thumb to express your mood
                     </span>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
                     onClick={() => setTrackingMode("face")}
-                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all hover:scale-[1.02] ${
+                    className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${
                       trackingMode === "face"
                         ? "border-[#4A90E2] bg-[#4A90E2]/10"
                         : "border-white/50 glass hover:border-white/70"
                     }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
                   >
                     <span className="text-3xl mb-2">😊</span>
                     <span className="text-sm font-medium text-[#1a4d3e]">Face Tracking</span>
                     <span className="text-xs text-[#1a4d3e]/60 mt-1 text-center">
                       Detect mood from your facial expression
                     </span>
-                  </button>
+                  </motion.button>
                 </div>
               </motion.div>
 

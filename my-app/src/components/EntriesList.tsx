@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { staggerContainer, cardVariant } from "@/lib/animations"
+import { staggerContainer, cardVariant, emptyState } from "@/lib/animations"
 import { PenIcon, PlayIcon } from "@/components/icons"
 import EntryDeleteButton from "@/components/EntryDeleteButton"
 
@@ -72,10 +72,19 @@ export default function EntriesList({ entries }: Props) {
   if (entries.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="panel-soft p-12 max-w-md mx-auto">
-          <div className="flex justify-center text-[#1a4d3e]/60 mb-6">
+        <motion.div
+          className="panel-soft p-12 max-w-md mx-auto"
+          variants={emptyState}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div
+            className="flex justify-center text-[#1a4d3e]/60 mb-6"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+          >
             <PenIcon className="w-14 h-14" />
-          </div>
+          </motion.div>
           <h3 className="text-2xl font-bold text-[#1a4d3e] mb-3">No entries yet</h3>
           <p className="text-[#1a4d3e]/70 mb-8">
             Start your digital diary journey by creating your first entry.
@@ -94,7 +103,7 @@ export default function EntriesList({ entries }: Props) {
               Guided
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }

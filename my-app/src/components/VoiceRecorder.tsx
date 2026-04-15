@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { uploadAudio } from "@/lib/actions/media"
+import { scaleIn, fadeIn, overlayFade } from "@/lib/animations"
+import { MicrophoneIcon } from "@/components/icons"
 
 interface VoiceRecorderProps {
   voiceUrl: string | null
@@ -101,55 +104,102 @@ export default function VoiceRecorder({ voiceUrl, onVoiceChange }: VoiceRecorder
     <div className="space-y-3">
       <label className="block text-sm font-medium text-[#1a4d3e]">Voice Note</label>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-red-800 text-sm">{error}</p>
-        </div>
-      )}
-
-      {voiceUrl && state === "idle" && (
-        <div className="glass rounded-2xl p-4 flex items-center gap-4">
-          <span className="text-2xl shrink-0">&#127897;</span>
-          <audio controls src={voiceUrl} className="flex-1 min-w-0" />
-          <button
-            type="button"
-            onClick={removeRecording}
-            className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors shrink-0"
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            key="error"
+            variants={overlayFade}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="glass rounded-2xl border-2 border-red-200/50 p-4"
           >
-            Remove
-          </button>
-        </div>
-      )}
+            <p className="text-red-700 text-sm">{error}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {state === "idle" && !voiceUrl && (
-        <button
-          type="button"
-          onClick={startRecording}
-          className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-[#4A90E2]/50 rounded-2xl text-sm font-medium text-[#1a4d3e] hover:border-[#4A90E2] hover:bg-[#4A90E2]/5 transition-all"
-        >
-          <span>&#127897;</span> Start Recording
-        </button>
-      )}
-
-      {state === "recording" && (
-        <div className="glass rounded-2xl p-4 flex items-center gap-4">
-          <span className="inline-block w-3 h-3 rounded-full bg-red-500 animate-pulse shrink-0" />
-          <span className="text-sm font-mono text-[#1a4d3e] tabular-nums">{formatDuration(duration)}</span>
-          <button
-            type="button"
-            onClick={stopRecording}
-            className="ml-auto glass rounded-2xl px-4 py-2 text-sm font-medium text-[#1a4d3e] hover:bg-white/40 transition-all"
+      <AnimatePresence mode="wait">
+        {voiceUrl && state === "idle" && (
+          <motion.div
+            key="playback"
+            variants={scaleIn}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+            className="glass rounded-2xl p-4 flex items-center gap-4"
           >
-            Stop
-          </button>
-        </div>
-      )}
+            <MicrophoneIcon className="w-5 h-5 text-[#1a4d3e] shrink-0" />
+            <audio controls src={voiceUrl} className="flex-1 min-w-0" />
+            <motion.button
+              type="button"
+              onClick={removeRecording}
+              className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors shrink-0"
+              whileTap={{ scale: 0.97 }}
+            >
+              Remove
+            </motion.button>
+          </motion.div>
+        )}
 
-      {state === "uploading" && (
-        <div className="glass rounded-2xl p-4">
-          <span className="text-sm text-[#1a4d3e]/60">Uploading voice note...</span>
-        </div>
-      )}
+        {state === "idle" && !voiceUrl && (
+          <motion.button
+            key="idle"
+            type="button"
+            onClick={startRecording}
+            className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-[#4A90E2]/50 rounded-2xl text-sm font-medium text-[#1a4d3e] hover:border-[#4A90E2] hover:bg-[#4A90E2]/5 transition-all"
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <MicrophoneIcon className="w-4 h-4" /> Start Recording
+          </motion.button>
+        )}
+
+        {state === "recording" && (
+          <motion.div
+            key="recording"
+            variants={scaleIn}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+            className="glass rounded-2xl p-4 flex items-center gap-4"
+          >
+            <motion.span
+              className="inline-block w-3 h-3 rounded-full bg-red-500 shrink-0"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+            />
+            <span className="text-sm font-mono text-[#1a4d3e] tabular-nums">{formatDuration(duration)}</span>
+            <motion.button
+              type="button"
+              onClick={stopRecording}
+              className="ml-auto glass rounded-2xl px-4 py-2 text-sm font-medium text-[#1a4d3e] hover:bg-white/40 transition-all"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Stop
+            </motion.button>
+          </motion.div>
+        )}
+
+        {state === "uploading" && (
+          <motion.div
+            key="uploading"
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0 }}
+            className="glass rounded-2xl p-4 flex items-center gap-3"
+          >
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#4A90E2] border-t-transparent shrink-0" />
+            <span className="text-sm text-[#1a4d3e]/60">Uploading voice note…</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { staggerContainer, mediaItem } from "@/lib/animations"
+import { MicrophoneIcon } from "@/components/icons"
 
 interface MediaViewerProps {
   mediaUrls: string[]
@@ -41,7 +42,7 @@ export default function MediaViewer({ mediaUrls }: MediaViewerProps) {
                 </div>
               ) : isAudio ? (
                 <div className="glass rounded-xl p-4 flex items-center gap-3 col-span-full">
-                  <span className="text-2xl shrink-0">&#127897;</span>
+                  <MicrophoneIcon className="w-5 h-5 text-[#1a4d3e] shrink-0" />
                   <audio controls src={url} className="flex-1 min-w-0">
                     Your browser does not support the audio tag.
                   </audio>
