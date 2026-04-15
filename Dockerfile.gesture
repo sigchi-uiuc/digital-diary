@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY my-app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/app/gesture_server.py .
+COPY my-app/src/app/gesture_server.py .
 
 # Download MediaPipe models at build time — not stored in git
 RUN apt-get update && apt-get install -y --no-install-recommends wget \

@@ -1,13 +1,13 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
+COPY my-app/package*.json ./
 RUN npm ci
 
 # ── Build ──────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY my-app/ .
 
 # Prisma client must be generated before build
 RUN npx prisma generate
