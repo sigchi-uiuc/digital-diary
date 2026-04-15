@@ -22,7 +22,6 @@ pipeline {
         }
 
         stage('Deploy') {
-            when { branch 'prod' }
             steps {
                 withCredentials([file(credentialsId: 'diary-env-file', variable: 'ENV_FILE')]) {
                     sh """
