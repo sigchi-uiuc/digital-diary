@@ -25,10 +25,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'diary-env-file', variable: 'ENV_FILE')]) {
                     sh '''
-                        cp "$ENV_FILE" .env
-                        echo "=== .env present: ===" && ls -lh .env
-                        echo "=== Key count: ===" && grep -c '=' .env || true
-                        docker compose up -d --remove-orphans
+                        docker compose --env-file "$ENV_FILE" up -d --remove-orphans
                         docker image prune -f
                     '''
                 }
