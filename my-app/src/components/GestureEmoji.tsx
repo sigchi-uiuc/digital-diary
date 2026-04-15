@@ -20,14 +20,15 @@ interface GestureEmojiProps {
 export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
     const [gesture, setGesture]                 = useState<Gesture>(null);
     const [confirmed, setConfirmed]             = useState(false);
-    const [cameraAvailable, setCameraAvailable] = useState(false);
+    const [cameraActive, setCameraActive]       = useState(false);
     const [cameraError, setCameraError]         = useState<string | null>(null);
+    const [serverError, setServerError]         = useState<string | null>(null);
 
     const videoRef    = useRef<HTMLVideoElement>(null);
     const canvasRef   = useRef<HTMLCanvasElement>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const streamRef   = useRef<MediaStream | null>(null);
-    const sendingRef  = useRef(false); // prevent overlapping requests
+    const sendingRef  = useRef(false);
 
     const stopAll = useCallback(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -39,8 +40,9 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
     useEffect(() => {
         setGesture(null);
         setConfirmed(false);
-        setCameraAvailable(false);
+        setCameraActive(false);
         setCameraError(null);
+        setServerError(null);
         stopAll();
 
         let cancelled = false;
@@ -61,43 +63,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
             streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.play().catch(() => {});
-            }
-            setCameraAvailable(true);
-
-            const canvas = canvasRef.current!;
-            const ctx2d  = canvas.getContext("2d")!;
-
-            intervalRef.current = setInterval(() => {
-                if (sendingRef.current) return; // skip frame if previous still in-flight
-                const video = videoRef.current;
-                if (!video || video.readyState < 2) return;
-
-                canvas.width  = 320;
-                canvas.height = 240;
-                ctx2d.drawImage(video, 0, 0, 320, 240);
-
-                canvas.toBlob(async (blob) => {
-                    if (!blob || cancelled) return;
-                    sendingRef.current = true;
-                    try {
-                        const buf = await blob.arrayBuffer();
-                        const res = await fetch(`/api/gesture?mode=face`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/octet-stream" },
-                            body: buf,
-                        });
-                        if (!res.ok) return;
-                        const text = await res.text();
-                        const data = JSON.parse(text) as { gesture: Gesture };
-                        setGesture(data.gesture);
-                        setConfirmed(false);
-                    } catch { /* server unavailable */ }
-                    finally { sendingRef.current = false; }
-                }, "image/jpeg", 0.7);
-            }, 800); // ~1.2 fps — face expressions don't need high frequency
+            setCameraActive(true); // mount the video element first, then attach in effect below
         }
 
         start();
@@ -107,6 +73,53 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         };
     }, [stopAll]);
 
+    // Attach stream once video element is in the DOM (after setCameraActive(true))
+    useEffect(() => {
+        if (!cameraActive || !videoRef.current || !streamRef.current) return;
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(() => {});
+
+        const canvas = canvasRef.current!;
+        const ctx2d  = canvas.getContext("2d")!;
+        let cancelled = false;
+
+        intervalRef.current = setInterval(() => {
+            if (sendingRef.current) return;
+            const video = videoRef.current;
+            if (!video || video.readyState < 2) return;
+
+            canvas.width  = 320;
+            canvas.height = 240;
+            ctx2d.drawImage(video, 0, 0, 320, 240);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob || cancelled) return;
+                sendingRef.current = true;
+                try {
+                    const buf = await blob.arrayBuffer();
+                    const res = await fetch(`/api/gesture?mode=face`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/octet-stream" },
+                        body: buf,
+                    });
+                    if (!res.ok) {
+                        const errText = await res.text().catch(() => `HTTP ${res.status}`);
+                        setServerError(errText);
+                        return;
+                    }
+                    setServerError(null);
+                    const data = await res.json() as { gesture: Gesture };
+                    setGesture(data.gesture);
+                    setConfirmed(false);
+                } catch (err) {
+                    setServerError(err instanceof Error ? err.message : "Server unreachable");
+                } finally { sendingRef.current = false; }
+            }, "image/jpeg", 0.7);
+        }, 800);
+
+        return () => { cancelled = true; };
+    }, [cameraActive]);
+
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
             onGestureSelect(EMOJI_MAP[gesture]);
@@ -114,11 +127,8 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         }
     };
 
-    const instructionText = "Show your facial expression — smile big, small, neutral, slight frown, or frown";
-
     return (
         <div className="flex flex-col items-center gap-3">
-            {/* Hidden canvas used to capture frames */}
             <canvas ref={canvasRef} className="hidden" />
 
             {cameraError && (
@@ -127,33 +137,30 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
                 </p>
             )}
 
-            <AnimatePresence>
-                {cameraAvailable && (
-                    <motion.div
-                        variants={scaleIn}
-                        initial="hidden"
-                        animate="visible"
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36"
-                    >
-                        <video
-                            ref={videoRef}
-                            muted
-                            playsInline
-                            autoPlay
-                            className="w-full h-full object-cover scale-x-[-1]"
-                        />
-                        <motion.div
-                            className="absolute bottom-1 right-1 glass text-[#1a4d3e] text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
-                            animate={{ opacity: [1, 0.6, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                        >
-                            <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                            Live
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {serverError && (
+                <p className="text-xs text-orange-500/80 text-center max-w-xs">
+                    Detection error: {serverError}
+                </p>
+            )}
+
+            {/* Video always rendered so ref is available; hidden until camera active */}
+            <div className={cameraActive ? "relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36" : "hidden"}>
+                <video
+                    ref={videoRef}
+                    muted
+                    playsInline
+                    autoPlay
+                    className="w-full h-full object-cover scale-x-[-1]"
+                />
+                <motion.div
+                    className="absolute bottom-1 right-1 glass text-[#1a4d3e] text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+                    animate={{ opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                    Live
+                </motion.div>
+            </div>
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -162,13 +169,10 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.5, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    style={{ fontSize: gesture ? "60px" : undefined }}
+                    style={{ fontSize: "60px" }}
                     className="flex items-center justify-center"
                 >
-                    {gesture
-                        ? <span>{EMOJI_MAP[gesture]}</span>
-                        : <span style={{ fontSize: "60px" }}>😐</span>
-                    }
+                    <span>{gesture ? EMOJI_MAP[gesture] : "😐"}</span>
                 </motion.div>
             </AnimatePresence>
 
@@ -180,7 +184,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             >
                 {gesture
                     ? `Detected: ${EMOJI_MAP[gesture]} — click to confirm`
-                    : instructionText}
+                    : "Show your facial expression — smile big, small, neutral, slight frown, or frown"}
             </motion.p>
 
             <AnimatePresence>
