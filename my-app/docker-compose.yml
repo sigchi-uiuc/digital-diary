@@ -1,0 +1,37 @@
+services:
+  gesture-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.gesture
+    restart: unless-stopped
+    environment:
+      # Only Next.js can reach this — no CORS needed, no public exposure
+      ALLOWED_ORIGINS: "http://nextjs:3444"
+    networks:
+      - internal   # NOT on proxy — never reachable from outside
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    restart: unless-stopped
+    environment:
+      DATABASE_URL:          "${DATABASE_URL}"
+      NEXTAUTH_URL:          "${NEXTAUTH_URL}"
+      NEXTAUTH_SECRET:       "${NEXTAUTH_SECRET}"
+      GOOGLE_CLIENT_ID:      "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET:  "${GOOGLE_CLIENT_SECRET}"
+      GESTURE_SERVER_URL:    "http://gesture-server:8000"
+    depends_on:
+      - gesture-server
+    networks:
+      - internal  # talks to gesture-server
+      - proxy     # reachable by NPM
+
+networks:
+  internal:
+    driver: bridge
+
+  proxy:
+    external: true
+    name: npm-proxy-manager

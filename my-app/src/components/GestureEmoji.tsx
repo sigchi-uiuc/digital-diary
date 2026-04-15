@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scaleIn, fadeIn, fadeUp } from "@/lib/animations";
 import { HandIcon } from "@/components/icons";
@@ -20,39 +20,86 @@ interface GestureEmojiProps {
 }
 
 export default function GestureEmoji({ onGestureSelect, mode = "hand" }: GestureEmojiProps) {
-    const [gesture, setGesture] = useState<Gesture>(null);
-    const [confirmed, setConfirmed] = useState(false);
+    const [gesture, setGesture]                 = useState<Gesture>(null);
+    const [confirmed, setConfirmed]             = useState(false);
     const [cameraAvailable, setCameraAvailable] = useState(false);
 
-    const gestureEndpoint = mode === "face"
-        ? "http://127.0.0.1:8000/face_gesture"
-        : "http://127.0.0.1:8000/gesture";
-    const videoEndpoint = mode === "face"
-        ? "http://127.0.0.1:8000/face_video"
-        : "http://127.0.0.1:8000/video";
+    const videoRef    = useRef<HTMLVideoElement>(null);
+    const canvasRef   = useRef<HTMLCanvasElement>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const streamRef   = useRef<MediaStream | null>(null);
+    const sendingRef  = useRef(false); // prevent overlapping requests
+
+    const stopAll = useCallback(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+        intervalRef.current = null;
+        streamRef.current   = null;
+    }, []);
 
     useEffect(() => {
-        setCameraAvailable(false);
         setGesture(null);
-        fetch(videoEndpoint)
-            .then(() => setCameraAvailable(true))
-            .catch(() => setCameraAvailable(false));
-    }, [videoEndpoint]);
+        setConfirmed(false);
+        setCameraAvailable(false);
+        stopAll();
 
-    useEffect(() => {
-        const interval = setInterval(async () => {
+        let cancelled = false;
+
+        async function start() {
+            let stream: MediaStream;
             try {
-                const res = await fetch(gestureEndpoint);
-                const data = await res.json();
-                setGesture(data.gesture);
-                setConfirmed(false);
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
             } catch {
-                // Server not running
+                return; // camera denied or unavailable
             }
-        }, 200);
+            if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
-        return () => clearInterval(interval);
-    }, [gestureEndpoint]);
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play().catch(() => {});
+            }
+            setCameraAvailable(true);
+
+            const canvas = canvasRef.current!;
+            const ctx2d  = canvas.getContext("2d")!;
+
+            intervalRef.current = setInterval(() => {
+                if (sendingRef.current) return; // skip frame if previous still in-flight
+                const video = videoRef.current;
+                if (!video || video.readyState < 2) return;
+
+                canvas.width  = 320;
+                canvas.height = 240;
+                ctx2d.drawImage(video, 0, 0, 320, 240);
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob || cancelled) return;
+                    sendingRef.current = true;
+                    try {
+                        const buf = await blob.arrayBuffer();
+                        const res = await fetch(`/api/gesture?mode=${mode}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/octet-stream" },
+                            body: buf,
+                        });
+                        if (res.ok) {
+                            const data = await res.json() as { gesture: Gesture };
+                            setGesture(data.gesture);
+                            setConfirmed(false);
+                        }
+                    } catch { /* server unavailable */ }
+                    finally { sendingRef.current = false; }
+                }, "image/jpeg", 0.7);
+            }, 150); // ~7 fps — enough for gesture detection, leaves room for round-trip
+        }
+
+        start();
+        return () => {
+            cancelled = true;
+            stopAll();
+        };
+    }, [mode, stopAll]);
 
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
@@ -67,6 +114,8 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
 
     return (
         <div className="flex flex-col items-center gap-3">
+            {/* Hidden canvas used to capture frames */}
+            <canvas ref={canvasRef} className="hidden" />
 
             <AnimatePresence>
                 {cameraAvailable && (
@@ -77,12 +126,11 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36"
                     >
-                        <img
-                            src={videoEndpoint}
-                            alt="Camera feed"
-                            className="w-full h-full object-cover"
-                            onError={() => setCameraAvailable(false)}
-                            style={{ imageRendering: "auto" }}
+                        <video
+                            ref={videoRef}
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover scale-x-[-1]"
                         />
                         <motion.div
                             className="absolute bottom-1 right-1 glass text-[#1a4d3e] text-xs px-2 py-0.5 rounded-full flex items-center gap-1"

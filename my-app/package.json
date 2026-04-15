@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail \"next dev --turbopack\" \"python src/app/gesture_server.py\"",
+    "dev": "concurrently --kill-others-on-fail \"next dev --turbopack -p 3444\" \".venv/bin/python src/app/gesture_server.py\"",
     "build": "next build --turbopack",
     "start": "next start",
     "prisma:generate": "prisma generate",
