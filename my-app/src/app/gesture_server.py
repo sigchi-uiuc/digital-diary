@@ -1,13 +1,13 @@
 import os
 import asyncio
+import threading
 import numpy as np
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
-from contextlib import nullcontext
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -27,7 +27,41 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Detection helpers (unchanged logic)
+# Landmarkers loaded once at startup — reused across all requests
+# ---------------------------------------------------------------------------
+
+_hand_landmarker = None
+_face_landmarker = None
+_lock = threading.Lock()   # MediaPipe isn't thread-safe; serialize detect calls
+
+
+def _load_models():
+    global _hand_landmarker, _face_landmarker
+
+    hand_options = vision.HandLandmarkerOptions(
+        base_options=mp_python.BaseOptions(model_asset_path=HAND_MODEL_PATH),
+        num_hands=2,
+        min_hand_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
+    _hand_landmarker = vision.HandLandmarker.create_from_options(hand_options)
+
+    if os.path.exists(FACE_MODEL_PATH):
+        face_options = vision.FaceLandmarkerOptions(
+            base_options=mp_python.BaseOptions(model_asset_path=FACE_MODEL_PATH),
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            output_face_blendshapes=True,
+        )
+        _face_landmarker = vision.FaceLandmarker.create_from_options(face_options)
+    else:
+        print("face_landmarker.task not found — face mode disabled")
+
+
+# ---------------------------------------------------------------------------
+# Detection helpers
 # ---------------------------------------------------------------------------
 
 def is_thumb_only(hand_landmarks):
@@ -83,129 +117,54 @@ def get_face_emotion(face_results):
         return "okay"
 
 
+def _process_frame(raw: bytes, mode: str) -> dict:
+    nparr = np.frombuffer(raw, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if frame is None:
+        return {"gesture": None}
+
+    rgb      = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+    with _lock:
+        if mode == "face" and _face_landmarker is not None:
+            face_results = _face_landmarker.detect(mp_image)
+            return {"gesture": get_face_emotion(face_results)}
+
+        if _hand_landmarker is None:
+            return {"gesture": None}
+
+        hand_results = _hand_landmarker.detect(mp_image)
+        gesture = None
+        if hand_results.hand_landmarks:
+            for hand_lm in hand_results.hand_landmarks:
+                gesture = get_thumb_gesture(hand_lm)
+                if gesture:
+                    break
+        return {"gesture": gesture}
+
+
 # ---------------------------------------------------------------------------
-# HTTP endpoint — called by the Next.js API route (never by the browser directly)
-# POST /detect?mode=hand|face   body: raw JPEG bytes
+# HTTP endpoint
 # ---------------------------------------------------------------------------
 
 @app.post("/detect")
 async def detect(request: Request, mode: str = "hand"):
-    loop = asyncio.get_event_loop()
     data = await request.body()
-
-    hand_options = vision.HandLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=HAND_MODEL_PATH),
-        num_hands=2,
-        min_hand_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
-
-    if os.path.exists(FACE_MODEL_PATH):
-        face_options = vision.FaceLandmarkerOptions(
-            base_options=mp_python.BaseOptions(model_asset_path=FACE_MODEL_PATH),
-            num_faces=1,
-            min_face_detection_confidence=0.5,
-            min_face_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-            output_face_blendshapes=True,
-        )
-        face_ctx = vision.FaceLandmarker.create_from_options(face_options)
-    else:
-        face_ctx = nullcontext(None)
-
-    def process(raw: bytes) -> dict:
-        nparr = np.frombuffer(raw, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return {"gesture": None}
-
-        rgb      = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-
-        with vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
-             face_ctx as face_landmarker:
-
-            if mode == "face" and face_landmarker is not None:
-                face_results = face_landmarker.detect(mp_image)
-                return {"gesture": get_face_emotion(face_results)}
-
-            hand_results = hand_landmarker.detect(mp_image)
-            gesture = None
-            if hand_results.hand_landmarks:
-                for hand_lm in hand_results.hand_landmarks:
-                    gesture = get_thumb_gesture(hand_lm)
-                    if gesture:
-                        break
-            return {"gesture": gesture}
-
-    result = await loop.run_in_executor(None, process, data)
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, _process_frame, data, mode)
     return JSONResponse(result)
 
 
 # ---------------------------------------------------------------------------
-# WebSocket endpoint — browser sends JPEG frames, server returns JSON gesture
+# Startup
 # ---------------------------------------------------------------------------
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-
-    mode = websocket.query_params.get("mode", "hand")
-    loop = asyncio.get_event_loop()
-
-    hand_options = vision.HandLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=HAND_MODEL_PATH),
-        num_hands=2,
-        min_hand_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
-
-    if os.path.exists(FACE_MODEL_PATH):
-        face_options = vision.FaceLandmarkerOptions(
-            base_options=mp_python.BaseOptions(model_asset_path=FACE_MODEL_PATH),
-            num_faces=1,
-            min_face_detection_confidence=0.5,
-            min_face_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-            output_face_blendshapes=True,
-        )
-        face_ctx = vision.FaceLandmarker.create_from_options(face_options)
-    else:
-        face_ctx = nullcontext(None)
-
-    with vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
-         face_ctx as face_landmarker:
-        try:
-            while True:
-                data = await websocket.receive_bytes()
-
-                def process(raw: bytes) -> dict:
-                    nparr = np.frombuffer(raw, np.uint8)
-                    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                    if frame is None:
-                        return {"gesture": None}
-
-                    rgb      = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-
-                    if mode == "face" and face_landmarker is not None:
-                        face_results = face_landmarker.detect(mp_image)
-                        return {"gesture": get_face_emotion(face_results)}
-
-                    hand_results = hand_landmarker.detect(mp_image)
-                    gesture = None
-                    if hand_results.hand_landmarks:
-                        for hand_lm in hand_results.hand_landmarks:
-                            gesture = get_thumb_gesture(hand_lm)
-                            if gesture:
-                                break
-                    return {"gesture": gesture}
-
-                result = await loop.run_in_executor(None, process, data)
-                await websocket.send_json(result)
-
-        except WebSocketDisconnect:
-            pass
+@app.on_event("startup")
+def startup_event():
+    _load_models()
+    print(f"Hand landmarker ready: {_hand_landmarker is not None}")
+    print(f"Face landmarker ready: {_face_landmarker is not None}")
 
 
 if __name__ == "__main__":

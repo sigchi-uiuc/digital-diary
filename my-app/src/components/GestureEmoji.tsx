@@ -91,11 +91,11 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                             headers: { "Content-Type": "application/octet-stream" },
                             body: buf,
                         });
-                        if (res.ok) {
-                            const data = await res.json() as { gesture: Gesture };
-                            setGesture(data.gesture);
-                            setConfirmed(false);
-                        }
+                        if (!res.ok) return;
+                        const text = await res.text();
+                        const data = JSON.parse(text) as { gesture: Gesture };
+                        setGesture(data.gesture);
+                        setConfirmed(false);
                     } catch { /* server unavailable */ }
                     finally { sendingRef.current = false; }
                 }, "image/jpeg", 0.7);
