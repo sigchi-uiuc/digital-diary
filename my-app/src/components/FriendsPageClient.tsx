@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { staggerContainer, cardVariant, fadeUp, sectionReveal, listItem } from "@/lib/animations"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
@@ -245,7 +244,7 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                       <div className="flex items-center gap-3">
                         <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden">
                           {user.profilePicture ? (
-                            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
+                            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
                           ) : (
                             <span>{initials(user)}</span>
                           )}
@@ -410,7 +409,7 @@ function RelationshipCard({ user, badge, compact = false, action, href }: {
       <div className="flex items-center gap-3 min-w-0">
         <div className={`relative ${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
           {user.profilePicture ? (
-            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
+            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
           ) : <span>{initials(user)}</span>}
         </div>
         <div className="min-w-0">

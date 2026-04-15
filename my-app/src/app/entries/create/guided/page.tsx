@@ -25,6 +25,7 @@ export default function CreateGuidedEntry() {
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
+  const [detectionMode, setDetectionMode] = useState<"face" | "hand">("face")
   const router = useRouter()
 
   useEffect(() => {
@@ -226,9 +227,33 @@ export default function CreateGuidedEntry() {
 
                   <div className="border-t border-white/20 pt-6">
                     <p className="text-center text-sm text-[#1a4d3e]/60 mb-3">
-                      Or detect with your facial expression
+                      Or detect your mood automatically
                     </p>
-                    <GestureEmoji onGestureSelect={handleMoodSelection} />
+                    <div className="flex justify-center gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setDetectionMode("face")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                          detectionMode === "face"
+                            ? "bg-[#4A90E2] text-white"
+                            : "glass text-[#1a4d3e]/70 hover:bg-white/40"
+                        }`}
+                      >
+                        😊 Face
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetectionMode("hand")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                          detectionMode === "hand"
+                            ? "bg-[#4A90E2] text-white"
+                            : "glass text-[#1a4d3e]/70 hover:bg-white/40"
+                        }`}
+                      >
+                        👍 Hand
+                      </button>
+                    </div>
+                    <GestureEmoji onGestureSelect={handleMoodSelection} mode={detectionMode} />
                   </div>
                 </motion.div>
               )}

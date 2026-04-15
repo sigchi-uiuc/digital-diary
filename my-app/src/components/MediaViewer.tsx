@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { motion } from "framer-motion"
 import { staggerContainer, mediaItem } from "@/lib/animations"
 import { MicrophoneIcon } from "@/components/icons"
@@ -30,14 +29,13 @@ export default function MediaViewer({ mediaUrls }: MediaViewerProps) {
             <motion.div key={index} className="relative group" variants={mediaItem}>
               {isImage ? (
                 <div
-                  className="relative w-full h-48 cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full h-48 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                   onClick={() => window.open(url, "_blank")}
                 >
-                  <Image
+                  <img
                     src={url}
                     alt={`Media ${index + 1}`}
-                    fill
-                    className="object-cover rounded-xl border border-white/30"
+                    className="w-full h-full object-cover rounded-xl border border-white/30"
                   />
                 </div>
               ) : isAudio ? (

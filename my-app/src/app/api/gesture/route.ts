@@ -9,11 +9,14 @@ export async function POST(request: Request) {
         return new Response("Unauthorized", { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const mode = searchParams.get("mode") === "hand" ? "hand" : "face";
+
     const body = await request.arrayBuffer();
 
     let upstream: Response;
     try {
-        upstream = await fetch(`${GESTURE_SERVER}/detect`, {
+        upstream = await fetch(`${GESTURE_SERVER}/detect?mode=${mode}`, {
             method: "POST",
             headers: { "Content-Type": "application/octet-stream" },
             body,

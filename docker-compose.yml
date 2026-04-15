@@ -23,11 +23,16 @@ services:
       GOOGLE_CLIENT_SECRET:  "${GOOGLE_CLIENT_SECRET}"
       GESTURE_SERVER_URL:    "http://gesture-server:8000"
       ANTHROPIC_API_KEY:  "${ANTHROPIC_API_KEY}"
+    volumes:
+      - uploads:/app/data/uploads
     depends_on:
       - gesture-server
     networks:
       - internal  # talks to gesture-server
       - proxy     # reachable by NPM
+
+volumes:
+  uploads:   # persists user uploads across container rebuilds
 
 networks:
   internal:

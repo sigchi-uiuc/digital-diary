@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scaleIn, fadeIn, fadeUp } from "@/lib/animations";
+import { HandIcon } from "@/components/icons";
 
 type Gesture = "fantastic" | "good" | "okay" | "sad" | "terrible" | null;
 
@@ -15,9 +16,10 @@ const EMOJI_MAP: Record<NonNullable<Gesture>, string> = {
 
 interface GestureEmojiProps {
     onGestureSelect?: (emoji: string) => void;
+    mode?: "hand" | "face";
 }
 
-export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
+export default function GestureEmoji({ onGestureSelect, mode = "face" }: GestureEmojiProps) {
     const [gesture, setGesture]                 = useState<Gesture>(null);
     const [confirmed, setConfirmed]             = useState(false);
     const [cameraActive, setCameraActive]       = useState(false);
@@ -37,6 +39,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         streamRef.current   = null;
     }, []);
 
+    // Acquire camera once on mount
     useEffect(() => {
         setGesture(null);
         setConfirmed(false);
@@ -63,7 +66,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
             streamRef.current = stream;
-            setCameraActive(true); // mount the video element first, then attach in effect below
+            setCameraActive(true);
         }
 
         start();
@@ -73,7 +76,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         };
     }, [stopAll]);
 
-    // Attach stream once video element is in the DOM (after setCameraActive(true))
+    // Attach stream + start detection interval (re-runs when mode changes)
     useEffect(() => {
         if (!cameraActive || !videoRef.current || !streamRef.current) return;
         videoRef.current.srcObject = streamRef.current;
@@ -82,6 +85,14 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
         const canvas = canvasRef.current!;
         const ctx2d  = canvas.getContext("2d")!;
         let cancelled = false;
+
+        // Reset detection state when switching mode
+        setGesture(null);
+        setConfirmed(false);
+        setServerError(null);
+
+        // Clear any previous interval
+        if (intervalRef.current) clearInterval(intervalRef.current);
 
         intervalRef.current = setInterval(() => {
             if (sendingRef.current) return;
@@ -97,7 +108,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
                 sendingRef.current = true;
                 try {
                     const buf = await blob.arrayBuffer();
-                    const res = await fetch(`/api/gesture?mode=face`, {
+                    const res = await fetch(`/api/gesture?mode=${mode}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/octet-stream" },
                         body: buf,
@@ -117,8 +128,12 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             }, "image/jpeg", 0.7);
         }, 800);
 
-        return () => { cancelled = true; };
-    }, [cameraActive]);
+        return () => {
+            cancelled = true;
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        };
+    }, [cameraActive, mode]);
 
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
@@ -126,6 +141,10 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             setConfirmed(true);
         }
     };
+
+    const instructionText = mode === "face"
+        ? "Show your facial expression — smile big, small, neutral, slight frown, or frown"
+        : "Point your thumb: all the way up, slightly up, sideways, slightly down, or all the way down";
 
     return (
         <div className="flex flex-col items-center gap-3">
@@ -143,7 +162,6 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
                 </p>
             )}
 
-            {/* Video always rendered so ref is available; hidden until camera active */}
             <div className={cameraActive ? "relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36" : "hidden"}>
                 <video
                     ref={videoRef}
@@ -172,7 +190,12 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
                     style={{ fontSize: "60px" }}
                     className="flex items-center justify-center"
                 >
-                    <span>{gesture ? EMOJI_MAP[gesture] : "😐"}</span>
+                    {gesture
+                        ? <span>{EMOJI_MAP[gesture]}</span>
+                        : mode === "face"
+                            ? <span>😐</span>
+                            : <HandIcon className="w-14 h-14 text-[#1a4d3e]/40" />
+                    }
                 </motion.div>
             </AnimatePresence>
 
@@ -184,7 +207,7 @@ export default function GestureEmoji({ onGestureSelect }: GestureEmojiProps) {
             >
                 {gesture
                     ? `Detected: ${EMOJI_MAP[gesture]} — click to confirm`
-                    : "Show your facial expression — smile big, small, neutral, slight frown, or frown"}
+                    : instructionText}
             </motion.p>
 
             <AnimatePresence>

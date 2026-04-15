@@ -50,3 +50,6 @@ __pycache__/
 
 # TLS certificates (mount into container, never commit)
 /certs/
+
+# User uploads — stored in data/uploads at runtime, not in git
+/data/

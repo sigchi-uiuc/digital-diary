@@ -98,7 +98,7 @@ export async function uploadProfilePicture(formData: FormData) {
     select: { profilePicture: true },
   })
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "profiles")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "profiles")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -118,7 +118,7 @@ export async function uploadProfilePicture(formData: FormData) {
 
   await writeFile(filePath, buffer)
 
-  const publicUrl = `/uploads/profiles/${fileName}`
+  const publicUrl = `/api/uploads/profiles/${fileName}`
 
   const updatedUser = await prisma.user.update({
     where: { id: session.user.id },
@@ -129,14 +129,18 @@ export async function uploadProfilePicture(formData: FormData) {
   // Clean up old profile picture
   if (currentUser?.profilePicture && currentUser.profilePicture !== publicUrl) {
     const oldFileName = currentUser.profilePicture.split("/").pop()
-    if (oldFileName) {
-      const oldFilePath = join(uploadsDir, oldFileName)
-      try {
-        if (existsSync(oldFilePath) && oldFileName.startsWith(session.user.id)) {
-          await unlink(oldFilePath)
+    if (oldFileName && oldFileName.startsWith(session.user.id)) {
+      // Try both new private path and legacy public path
+      const candidates = [
+        join(process.cwd(), "data", "uploads", "profiles", oldFileName),
+        join(process.cwd(), "public", "uploads", "profiles", oldFileName),
+      ]
+      for (const candidate of candidates) {
+        try {
+          if (existsSync(candidate)) await unlink(candidate)
+        } catch {
+          // Non-fatal
         }
-      } catch {
-        // Non-fatal
       }
     }
   }

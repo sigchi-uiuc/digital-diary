@@ -30,7 +30,7 @@ export async function uploadAudio(formData: FormData) {
   }
   const fileExtension = mimeToExt[file.type] ?? "webm"
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "entries")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "entries")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -42,7 +42,7 @@ export async function uploadAudio(formData: FormData) {
   await writeFile(filePath, Buffer.from(new Uint8Array(bytes)))
 
   return {
-    url: `/uploads/entries/${fileName}`,
+    url: `/api/uploads/entries/${fileName}`,
     type: file.type,
     size: file.size,
   }
@@ -80,7 +80,7 @@ export async function uploadMedia(formData: FormData) {
     throw new Error(`Invalid file extension. Please upload a ${isVideo ? "video" : "image"} file.`)
   }
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "entries")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "entries")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -103,7 +103,7 @@ export async function uploadMedia(formData: FormData) {
   await writeFile(filePath, buffer)
 
   return {
-    url: `/uploads/entries/${fileName}`,
+    url: `/api/uploads/entries/${fileName}`,
     type: file.type,
     size: file.size,
   }

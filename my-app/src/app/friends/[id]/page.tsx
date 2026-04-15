@@ -1,5 +1,4 @@
 import Link from "next/link"
-import Image from "next/image"
 import { notFound, redirect } from "next/navigation"
 import { getAppSession } from "@/lib/auth"
 import { getFriendProfile } from "@/lib/actions/friends"
@@ -79,7 +78,7 @@ export default async function FriendProfilePage({
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
               <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-2xl font-semibold flex items-center justify-center overflow-hidden shrink-0">
                 {friend.profilePicture ? (
-                  <Image src={friend.profilePicture} alt={displayName(friend)} fill className="object-cover" />
+                  <img src={friend.profilePicture} alt={displayName(friend)} className="w-full h-full object-cover" />
                 ) : (
                   <span>{initials(friend)}</span>
                 )}
