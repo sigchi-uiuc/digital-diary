@@ -38,8 +38,10 @@ _lock = threading.Lock()   # MediaPipe isn't thread-safe; serialize detect calls
 def _load_models():
     global _hand_landmarker, _face_landmarker
 
+    cpu = mp_python.BaseOptions.Delegate.CPU
+
     hand_options = vision.HandLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=HAND_MODEL_PATH),
+        base_options=mp_python.BaseOptions(model_asset_path=HAND_MODEL_PATH, delegate=cpu),
         num_hands=2,
         min_hand_detection_confidence=0.5,
         min_tracking_confidence=0.5,
@@ -48,7 +50,7 @@ def _load_models():
 
     if os.path.exists(FACE_MODEL_PATH):
         face_options = vision.FaceLandmarkerOptions(
-            base_options=mp_python.BaseOptions(model_asset_path=FACE_MODEL_PATH),
+            base_options=mp_python.BaseOptions(model_asset_path=FACE_MODEL_PATH, delegate=cpu),
             num_faces=1,
             min_face_detection_confidence=0.5,
             min_face_presence_confidence=0.5,
