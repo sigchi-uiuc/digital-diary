@@ -43,7 +43,7 @@ function LandingPage() {
     },
     {
       title: "Share With Friends",
-      body: "Keep entries private by default, or share selected ones with trusted friends — nobody else.",
+      body: "Keep entries private by default, or share selected ones with trusted friends, nobody else.",
     },
     {
       title: "Gesture Control",
@@ -58,7 +58,7 @@ function LandingPage() {
   const steps = [
     { n: "1", title: "Sign in", body: "Create an account in seconds with Google or email." },
     { n: "2", title: "Write freely", body: "Start a freewrite entry or pick a guided prompt to kick off a reflection." },
-    { n: "3", title: "Look back", body: "Browse entries by date, mood, or place — and share moments with friends." },
+    { n: "3", title: "Look back", body: "Browse entries by date, mood, or place, and share moments with friends." },
   ]
 
   return (
@@ -97,12 +97,12 @@ function LandingPage() {
                   Your days, reflected back to you.
                 </h2>
                 <p className="text-lg sm:text-xl text-[#1a4d3e]/80">
-                  Digital Diary is a calm, private space to write, record, and remember — with gentle AI prompts,
+                  Digital Diary is a calm, private space to write, record, and remember, with gentle AI prompts,
                   mood tracking, and shareable moments for the few people you trust.
                 </p>
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                   <Link href="/auth/signup" className="btn-glossy rounded-2xl px-8 py-3 text-white font-semibold w-full sm:w-auto text-center">
-                    Start your diary — it&apos;s free
+                    Start your diary, it&apos;s free
                   </Link>
                   <Link href="/auth/signin" className="glass rounded-2xl px-8 py-3 text-[#1a4d3e] hover:bg-white/40 transition-all font-medium border-2 border-white/50 w-full sm:w-auto text-center">
                     I already have an account
@@ -120,7 +120,7 @@ function LandingPage() {
             <div className="text-center mb-10">
               <h3 className="text-3xl sm:text-4xl font-bold text-[#1a4d3e]">Everything you need, nothing you don&apos;t.</h3>
               <p className="mt-3 text-[#1a4d3e]/70 max-w-2xl mx-auto">
-                Built around the way people actually journal — messy, multimedia, occasionally shared.
+                Built around the way people actually journal: messy, multimedia, occasionally shared.
               </p>
             </div>
           </AnimatedSection>
