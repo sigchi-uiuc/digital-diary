@@ -20,7 +20,7 @@
     "next-auth": "^4.24.7",
     "nodemailer": "7.0.13",
     "react": "^19.2.5",
-    "sharp": "^0.33.5",
+    "sharp": "^0.34.5",
     "react-calendar": "^6.0.0",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
