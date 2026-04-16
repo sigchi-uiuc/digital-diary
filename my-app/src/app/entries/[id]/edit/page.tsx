@@ -15,6 +15,7 @@ export default async function EditEntryPage({
   const entry = await getEntry(id)
 
   if (!entry) notFound()
+  if (entry.userId !== session.user?.id) notFound()
 
   return <EditEntryForm entry={entry} />
 }

@@ -20,12 +20,17 @@ const EXT_MIME: Record<string, string> = {
   ogg:  "audio/ogg",
   wav:  "audio/wav",
   mp3:  "audio/mpeg",
+  m4a:  "audio/mp4",
+  aac:  "audio/aac",
 };
 
 function mimeFor(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   if (ext === "webm") {
     return filename.startsWith("voice-") ? "audio/webm" : "video/webm";
+  }
+  if (ext === "mp4" && filename.startsWith("voice-")) {
+    return "audio/mp4";
   }
   return EXT_MIME[ext] ?? "application/octet-stream";
 }
@@ -41,16 +46,17 @@ function safePath(segments: string[], base: "data" | "public"): string | null {
 }
 
 /**
- * Parse the leading `{ownerId}-` segment from an upload filename.
- * Convention established by upload routes: `${userId}-${timestamp}.${ext}`.
- * Treats the first `-` as the separator so cuids (which may contain digits) work.
+ * Parse the owner user ID from an upload filename. Convention:
+ *   - images/video: `${userId}-${timestamp}.${ext}`
+ *   - voice notes:  `voice-${userId}-${timestamp}.${ext}`
+ * Returns the first cuid-shaped segment found.
  */
 function parseOwnerId(filename: string): string | null {
-  const dashIdx = filename.indexOf("-");
-  if (dashIdx <= 0) return null;
-  const candidate = filename.slice(0, dashIdx);
-  if (!/^[a-z0-9]{20,30}$/i.test(candidate)) return null;
-  return candidate;
+  const parts = filename.split("-");
+  for (const part of parts) {
+    if (/^[a-z0-9]{20,30}$/i.test(part)) return part;
+  }
+  return null;
 }
 
 function notFound() {

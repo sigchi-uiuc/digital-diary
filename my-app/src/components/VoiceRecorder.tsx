@@ -35,13 +35,59 @@ export default function VoiceRecorder({ voiceUrl, onVoiceChange }: VoiceRecorder
     }
   }, [localAudioUrl])
 
+  const pickRecorderMimeType = (): string | undefined => {
+    if (typeof MediaRecorder === "undefined") return undefined
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4;codecs=mp4a.40.2",
+      "audio/mp4",
+      "audio/aac",
+    ]
+    for (const t of candidates) {
+      try {
+        if (MediaRecorder.isTypeSupported?.(t)) return t
+      } catch {
+        // ignore
+      }
+    }
+    return undefined
+  }
+
+  const extFor = (mime: string): string => {
+    const base = mime.split(";")[0].trim().toLowerCase()
+    if (base === "audio/webm") return "webm"
+    if (base === "audio/mp4") return "m4a"
+    if (base === "audio/aac") return "aac"
+    if (base === "audio/ogg") return "ogg"
+    if (base === "audio/wav") return "wav"
+    if (base === "audio/mpeg") return "mp3"
+    return "webm"
+  }
+
   const startRecording = async () => {
     setError("")
     try {
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        setError("Microphone requires a secure (HTTPS) connection.")
+        return
+      }
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        setError("This browser does not support microphone recording.")
+        return
+      }
+      if (typeof MediaRecorder === "undefined") {
+        setError("This browser does not support audio recording.")
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
 
-      const mediaRecorder = new MediaRecorder(stream)
+      const mimeType = pickRecorderMimeType()
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
 
@@ -52,14 +98,18 @@ export default function VoiceRecorder({ voiceUrl, onVoiceChange }: VoiceRecorder
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
 
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" })
+        // Use the recorder's actual mimeType — iOS will produce audio/mp4,
+        // Chrome/Firefox audio/webm.
+        const actualType = mediaRecorder.mimeType || mimeType || "audio/webm"
+        const blob = new Blob(chunksRef.current, { type: actualType })
         const localUrl = URL.createObjectURL(blob)
         setLocalAudioUrl(localUrl)
 
         setState("uploading")
         try {
           const formData = new FormData()
-          formData.append("audio", blob, "recording.webm")
+          const ext = extFor(actualType)
+          formData.append("audio", blob, `recording.${ext}`)
           const result = await uploadAudio(formData)
           onVoiceChange(result.url)
         } catch (err) {
@@ -69,12 +119,21 @@ export default function VoiceRecorder({ voiceUrl, onVoiceChange }: VoiceRecorder
         }
       }
 
-      mediaRecorder.start()
+      // Request data every second so we always have chunks even if the user
+      // backgrounds the tab on mobile before hitting stop.
+      mediaRecorder.start(1000)
       setState("recording")
       setDuration(0)
       timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000)
-    } catch {
-      setError("Microphone access denied or not available.")
+    } catch (err) {
+      const name = err instanceof Error ? err.name : ""
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError("Microphone permission denied. Enable it in your browser settings.")
+      } else if (name === "NotFoundError") {
+        setError("No microphone found on this device.")
+      } else {
+        setError(err instanceof Error && err.message ? err.message : "Microphone not available.")
+      }
     }
   }
 

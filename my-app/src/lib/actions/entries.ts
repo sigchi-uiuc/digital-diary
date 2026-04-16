@@ -5,6 +5,7 @@ import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { EntryType, Visibility } from "@prisma/client"
 import { createEntrySchema, updateEntrySchema } from "@/lib/validation/schemas"
+import { canViewFriendResources } from "@/lib/actions/friends"
 
 export async function getEntries() {
   const session = await getAppSession()
@@ -21,10 +22,22 @@ export async function getEntry(id: string) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  return prisma.entry.findFirst({
-    where: { id, userId: session.user.id },
+  const entry = await prisma.entry.findUnique({
+    where: { id },
     include: { entryLocations: true },
   })
+  if (!entry) return null
+
+  // Owner always allowed.
+  if (entry.userId === session.user.id) return entry
+
+  // Friends may view entries shared with PUBLIC/PROTECTED visibility, provided
+  // the relationship is mutual and neither side has blocked the other.
+  if (entry.visibility === "PRIVATE") return null
+  const allowed = await canViewFriendResources(session.user.id, entry.userId)
+  if (!allowed) return null
+
+  return entry
 }
 
 export async function createEntry(data: unknown) {
