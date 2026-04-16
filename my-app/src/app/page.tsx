@@ -179,8 +179,12 @@ function LandingPage() {
           </AnimatedSection>
         </section>
 
-        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55">
+        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-2">
           <p>© {new Date().getFullYear()} Digital Diary. A quieter place on the internet.</p>
+          <p className="flex items-center justify-center gap-4">
+            <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+            <Link href="/terms-of-service" className="hover:underline">Terms of Service</Link>
+          </p>
         </footer>
       </main>
     </div>

@@ -10,7 +10,7 @@ export default withAuth(
         const { pathname } = req.nextUrl
 
         // Public routes (no token required): auth pages and the landing page.
-        if (pathname === "/" || pathname.startsWith("/auth/")) {
+        if (pathname === "/" || pathname.startsWith("/auth/") || pathname === "/privacy-policy" || pathname === "/terms-of-service") {
           return true
         }
 
