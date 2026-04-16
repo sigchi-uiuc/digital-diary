@@ -1,4 +1,3 @@
-import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getAppSession } from "@/lib/auth"
@@ -8,9 +7,8 @@ import prisma from "@/lib/prisma"
 import EntriesList from "@/components/EntriesList"
 import CreateEntryDropdown from "@/components/CreateEntryDropdown"
 import ProfileDropdown from "@/components/ProfileDropdown"
-import CalendarEvents from "@/components/CalendarEvents"
 import WeatherDisplay from "@/components/WeatherDisplay"
-import DiaryCalendarPopup from "@/components/DiaryCalendar"
+import DiaryCalendar from "@/components/DiaryCalendar"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
 import StatsBar from "@/components/StatsBar"
 import AnimatedSection from "@/components/AnimatedSection"
@@ -150,14 +148,8 @@ export default async function Home() {
             {/* Right column — calendar */}
             <div className="lg:col-span-5 space-y-8">
               <AnimatedSection preset="reveal" delay={0.2}>
-                <Suspense fallback={<div className="panel-soft skeleton h-48 rounded-2xl" />}>
-                  <CalendarEvents />
-                </Suspense>
-              </AnimatedSection>
-              <AnimatedSection preset="reveal" delay={0.3}>
                 <div className="panel-soft p-4">
-                  <h3 className="text-lg font-semibold text-[#1a4d3e] mb-2">Diary Calendar</h3>
-                  <DiaryCalendarPopup entries={entries} />
+                  <DiaryCalendar entries={entries} />
                 </div>
               </AnimatedSection>
             </div>

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { join } from "path";
 import { existsSync, statSync, createReadStream } from "fs";
 import { Readable } from "stream";
+import { NextRequest } from "next/server";
 
 const ALLOWED_DIRS = new Set(["profiles", "entries"]);
 
@@ -22,34 +23,23 @@ const EXT_MIME: Record<string, string> = {
 function mimeFor(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   if (ext === "webm") {
-    // Voice recordings are named voice-<userId>-<ts>.webm; everything else is video
     return filename.startsWith("voice-") ? "audio/webm" : "video/webm";
   }
   return EXT_MIME[ext] ?? "application/octet-stream";
 }
 
-function resolvePath(segments: string[]): string | null {
-  if (segments.length !== 2) return null;
-  const [dir, filename] = segments;
-
-  if (!ALLOWED_DIRS.has(dir)) return null;
-  // No path traversal, no slashes, only safe characters
-  if (!/^[\w.\-]+$/.test(filename)) return null;
-
-  return join(process.cwd(), "data", "uploads", dir, filename);
-}
-
-// Fallback: legacy files still living in public/uploads (pre-migration)
-function legacyPath(segments: string[]): string | null {
+function safePath(segments: string[], base: "data" | "public"): string | null {
   if (segments.length !== 2) return null;
   const [dir, filename] = segments;
   if (!ALLOWED_DIRS.has(dir)) return null;
   if (!/^[\w.\-]+$/.test(filename)) return null;
-  return join(process.cwd(), "public", "uploads", dir, filename);
+  return base === "data"
+    ? join(process.cwd(), "data", "uploads", dir, filename)
+    : join(process.cwd(), "public", "uploads", dir, filename);
 }
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const session = await getServerSession(authOptions);
@@ -59,29 +49,67 @@ export async function GET(
 
   const { path: segments } = await params;
 
-  const primary = resolvePath(segments);
-  if (!primary) {
-    return new Response("Not Found", { status: 404 });
-  }
+  const primary = safePath(segments, "data");
+  if (!primary) return new Response("Not Found", { status: 404 });
 
-  // Try private storage first, then fall back to legacy public location
-  const filePath = existsSync(primary) ? primary : (legacyPath(segments) ?? primary);
+  // Private storage first, fall back to legacy public/ location
+  const filePath = existsSync(primary)
+    ? primary
+    : (safePath(segments, "public") ?? primary);
 
-  if (!existsSync(filePath)) {
-    return new Response("Not Found", { status: 404 });
-  }
+  if (!existsSync(filePath)) return new Response("Not Found", { status: 404 });
 
-  const stat = statSync(filePath);
-  const filename = segments[segments.length - 1];
+  const stat        = statSync(filePath);
+  const totalSize   = stat.size;
+  const filename    = segments[segments.length - 1];
   const contentType = mimeFor(filename);
 
-  const nodeStream = createReadStream(filePath);
-  const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+  const rangeHeader = request.headers.get("range");
 
-  return new Response(webStream, {
+  // ── Partial content (Range request from <audio>/<video>) ────────────────
+  if (rangeHeader) {
+    const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+    if (!match) {
+      return new Response("Range Not Satisfiable", {
+        status: 416,
+        headers: { "Content-Range": `bytes */${totalSize}` },
+      });
+    }
+
+    const start = match[1] ? parseInt(match[1], 10) : 0;
+    const end   = match[2] ? parseInt(match[2], 10) : totalSize - 1;
+
+    if (start > end || end >= totalSize) {
+      return new Response("Range Not Satisfiable", {
+        status: 416,
+        headers: { "Content-Range": `bytes */${totalSize}` },
+      });
+    }
+
+    const chunkSize = end - start + 1;
+    const stream    = createReadStream(filePath, { start, end });
+
+    return new Response(Readable.toWeb(stream) as ReadableStream, {
+      status: 206,
+      headers: {
+        "Content-Type":   contentType,
+        "Content-Length": String(chunkSize),
+        "Content-Range":  `bytes ${start}-${end}/${totalSize}`,
+        "Accept-Ranges":  "bytes",
+        "Cache-Control":  "private, max-age=3600",
+      },
+    });
+  }
+
+  // ── Full file ────────────────────────────────────────────────────────────
+  const stream = createReadStream(filePath);
+
+  return new Response(Readable.toWeb(stream) as ReadableStream, {
+    status: 200,
     headers: {
       "Content-Type":   contentType,
-      "Content-Length": String(stat.size),
+      "Content-Length": String(totalSize),
+      "Accept-Ranges":  "bytes",
       "Cache-Control":  "private, max-age=3600",
     },
   });

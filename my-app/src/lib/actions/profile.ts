@@ -60,17 +60,6 @@ export async function updateProfile(data: {
   return user
 }
 
-export async function getTrackingMode(): Promise<string> {
-  const session = await getAppSession()
-  if (!session?.user?.id) return "hand"
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { trackingMode: true },
-  })
-  return user?.trackingMode ?? "hand"
-}
-
 export async function uploadProfilePicture(formData: FormData) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")

@@ -12,6 +12,7 @@ import GestureEmoji from "@/components/GestureEmoji"
 import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
 import { generateFollowUpQuestions } from "@/lib/actions/journal"
+import { getProfile } from "@/lib/actions/profile"
 
 export default function CreateGuidedEntry() {
   const [currentStep, setCurrentStep] = useState<"mood" | "prompts" | "confirm-followup" | "followup">("mood")
@@ -27,6 +28,13 @@ export default function CreateGuidedEntry() {
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
   const [detectionMode, setDetectionMode] = useState<"face" | "hand">("face")
   const router = useRouter()
+
+  // Load user's saved detection mode preference
+  useEffect(() => {
+    getProfile().then((p) => {
+      setDetectionMode(p.trackingMode === "hand" ? "hand" : "face")
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const update = () => {
