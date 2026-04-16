@@ -7,11 +7,13 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to auth pages without token
-        if (req.nextUrl.pathname.startsWith("/auth/")) {
+        const { pathname } = req.nextUrl
+
+        // Public routes (no token required): auth pages and the landing page.
+        if (pathname === "/" || pathname.startsWith("/auth/")) {
           return true
         }
-        
+
         // Require token for all other pages
         return !!token
       },
