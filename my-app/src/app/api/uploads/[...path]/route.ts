@@ -4,6 +4,8 @@ import { join } from "path";
 import { existsSync, statSync, createReadStream } from "fs";
 import { Readable } from "stream";
 import { NextRequest } from "next/server";
+import { rateLimit, UPLOAD_RATE_LIMIT } from "@/lib/rateLimit";
+import { canViewFriendResources } from "@/lib/actions/friends";
 
 const ALLOWED_DIRS = new Set(["profiles", "entries"]);
 
@@ -38,30 +40,72 @@ function safePath(segments: string[], base: "data" | "public"): string | null {
     : join(process.cwd(), "public", "uploads", dir, filename);
 }
 
+/**
+ * Parse the leading `{ownerId}-` segment from an upload filename.
+ * Convention established by upload routes: `${userId}-${timestamp}.${ext}`.
+ * Treats the first `-` as the separator so cuids (which may contain digits) work.
+ */
+function parseOwnerId(filename: string): string | null {
+  const dashIdx = filename.indexOf("-");
+  if (dashIdx <= 0) return null;
+  const candidate = filename.slice(0, dashIdx);
+  if (!/^[a-z0-9]{20,30}$/i.test(candidate)) return null;
+  return candidate;
+}
+
+function notFound() {
+  return new Response("Not Found", { status: 404 });
+}
+
+function forbidden() {
+  return new Response("Forbidden", { status: 403 });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  const viewerId = (session?.user as { id?: string } | undefined)?.id;
+  if (!session || !viewerId) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  const rl = rateLimit(`uploads:${viewerId}`, UPLOAD_RATE_LIMIT);
+  if (!rl.success) {
+    return new Response("Too Many Requests", {
+      status: 429,
+      headers: { "Retry-After": String(rl.retryAfterSeconds) },
+    });
+  }
+
   const { path: segments } = await params;
+  if (segments.length !== 2) return notFound();
+  const [dir, filename] = segments;
+  if (!ALLOWED_DIRS.has(dir)) return notFound();
+
+  const ownerId = parseOwnerId(filename);
+  if (!ownerId) return notFound();
+
+  // Authorization: owner always allowed. Friends may view shared resources
+  // (profile pictures; entry media visible on shared entries).
+  if (ownerId !== viewerId) {
+    const allowed = await canViewFriendResources(viewerId, ownerId);
+    if (!allowed) return forbidden();
+  }
 
   const primary = safePath(segments, "data");
-  if (!primary) return new Response("Not Found", { status: 404 });
+  if (!primary) return notFound();
 
   // Private storage first, fall back to legacy public/ location
   const filePath = existsSync(primary)
     ? primary
     : (safePath(segments, "public") ?? primary);
 
-  if (!existsSync(filePath)) return new Response("Not Found", { status: 404 });
+  if (!existsSync(filePath)) return notFound();
 
   const stat        = statSync(filePath);
   const totalSize   = stat.size;
-  const filename    = segments[segments.length - 1];
   const contentType = mimeFor(filename);
 
   const rangeHeader = request.headers.get("range");
@@ -92,11 +136,12 @@ export async function GET(
     return new Response(Readable.toWeb(stream) as ReadableStream, {
       status: 206,
       headers: {
-        "Content-Type":   contentType,
-        "Content-Length": String(chunkSize),
-        "Content-Range":  `bytes ${start}-${end}/${totalSize}`,
-        "Accept-Ranges":  "bytes",
-        "Cache-Control":  "private, max-age=3600",
+        "Content-Type":            contentType,
+        "Content-Length":          String(chunkSize),
+        "Content-Range":           `bytes ${start}-${end}/${totalSize}`,
+        "Accept-Ranges":           "bytes",
+        "Cache-Control":           "private, max-age=3600",
+        "X-Content-Type-Options":  "nosniff",
       },
     });
   }
@@ -107,10 +152,11 @@ export async function GET(
   return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
     headers: {
-      "Content-Type":   contentType,
-      "Content-Length": String(totalSize),
-      "Accept-Ranges":  "bytes",
-      "Cache-Control":  "private, max-age=3600",
+      "Content-Type":            contentType,
+      "Content-Length":          String(totalSize),
+      "Accept-Ranges":           "bytes",
+      "Cache-Control":           "private, max-age=3600",
+      "X-Content-Type-Options":  "nosniff",
     },
   });
 }

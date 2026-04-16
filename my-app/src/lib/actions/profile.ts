@@ -36,6 +36,42 @@ export async function getProfile() {
   return user
 }
 
+export async function getOwnProfile() {
+  const session = await getAppSession()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      ...PROFILE_SELECT,
+      entries: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          type: true,
+          visibility: true,
+          content: true,
+          qualityEmoji: true,
+          mediaUrls: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+  if (!user) throw new Error("User not found")
+  return user
+}
+
+function assertSafeProfilePicture(value: string | null | undefined) {
+  if (value == null || value === "") return
+  // Only allow relative paths we serve ourselves — prevents storing attacker-
+  // controlled absolute URLs (phishing/open-redirect via profile pic).
+  if (!value.startsWith("/api/uploads/profiles/")) {
+    throw new Error("Invalid profile picture URL")
+  }
+}
+
 export async function updateProfile(data: {
   firstName?: string
   lastName?: string
@@ -44,6 +80,10 @@ export async function updateProfile(data: {
 }) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
+
+  if (data.profilePicture !== undefined) {
+    assertSafeProfilePicture(data.profilePicture)
+  }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },

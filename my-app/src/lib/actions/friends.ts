@@ -3,8 +3,19 @@
 import { revalidatePath } from "next/cache"
 import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { rateLimit } from "@/lib/rateLimit"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
+
+const RELATIONSHIP_RATE_LIMIT = { limit: 20, windowSeconds: 60 }
+const SEARCH_RATE_LIMIT = { limit: 30, windowSeconds: 60 }
+
+function enforceRateLimit(userId: string, bucket: string, opts: { limit: number; windowSeconds: number }) {
+  const result = rateLimit(`${bucket}:${userId}`, opts)
+  if (!result.success) {
+    throw new Error(`Rate limited. Try again in ${result.retryAfterSeconds}s`)
+  }
+}
 
 function isMissingBlockedTable(error: unknown) {
   return (
@@ -26,13 +37,27 @@ async function loadBlockedIds(userId: string) {
   }
 }
 
+/** IDs of users who have blocked `userId` (i.e. `userId` is the target). */
+async function loadBlockedByIds(userId: string) {
+  try {
+    const rows = await prisma.$queryRaw<{ blockerId: string }[]>`
+      SELECT "blockerId" FROM "BlockedUser" WHERE "blockedId" = ${userId}
+    `
+    return rows.map((r) => r.blockerId)
+  } catch (error) {
+    if (isMissingBlockedTable(error)) return []
+    throw error
+  }
+}
+
 function getRelationshipStatus(
   userId: string,
   outgoingIds: Set<string>,
   incomingIds: Set<string>,
-  blockedIds: Set<string>
+  blockedIds: Set<string>,
+  blockedByIds: Set<string>
 ): RelationshipStatus {
-  if (blockedIds.has(userId)) return "blocked"
+  if (blockedIds.has(userId) || blockedByIds.has(userId)) return "blocked"
   const hasOutgoing = outgoingIds.has(userId)
   const hasIncoming = incomingIds.has(userId)
   if (hasOutgoing && hasIncoming) return "friend"
@@ -84,13 +109,17 @@ export async function getFriendEntries() {
 
   const userId = session.user.id
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      friends: { select: { id: true } },
-      friendsOf: { select: { id: true } },
-    },
-  })
+  const [user, blockedIdsList, blockedByIdsList] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        friends: { select: { id: true } },
+        friendsOf: { select: { id: true } },
+      },
+    }),
+    loadBlockedIds(userId),
+    loadBlockedByIds(userId),
+  ])
 
   const outgoingIds = new Set((user?.friends ?? []).map((u) => u.id))
   const incomingIds = new Set((user?.friendsOf ?? []).map((u) => u.id))
@@ -98,24 +127,22 @@ export async function getFriendEntries() {
 
   if (mutualFriendIds.length === 0) return []
 
-  const blockedRows = await prisma
-    .$queryRaw<{ blockedId: string }[]>`
-      SELECT "blockedId" FROM "BlockedUser" WHERE "blockerId" = ${userId}
-    `
-    .catch(() => [] as { blockedId: string }[])
-
-  const blockedIds = new Set(blockedRows.map((r) => r.blockedId))
-  const visibleFriendIds = mutualFriendIds.filter((id) => !blockedIds.has(id))
+  const blockedSet = new Set([...blockedIdsList, ...blockedByIdsList])
+  const visibleFriendIds = mutualFriendIds.filter((id) => !blockedSet.has(id))
 
   if (visibleFriendIds.length === 0) return []
 
   return prisma.entry.findMany({
-    where: { userId: { in: visibleFriendIds }, visibility: "PUBLIC" },
+    where: {
+      userId: { in: visibleFriendIds },
+      visibility: { in: ["PUBLIC", "PROTECTED"] },
+    },
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {
       id: true,
       type: true,
+      visibility: true,
       content: true,
       qualityEmoji: true,
       mediaUrls: true,
@@ -143,7 +170,7 @@ export async function getFriendProfile(friendId: string) {
   if (!targetId) throw new Error("Missing friendId")
   if (targetId === viewerId) throw new Error("Use your profile page to view your own profile")
 
-  const [viewer, blockedIdsList] = await Promise.all([
+  const [viewer, viewerBlocked, viewerBlockedBy] = await Promise.all([
     prisma.user.findUnique({
       where: { id: viewerId },
       select: {
@@ -152,10 +179,11 @@ export async function getFriendProfile(friendId: string) {
       },
     }),
     loadBlockedIds(viewerId),
+    loadBlockedByIds(viewerId),
   ])
 
   const isFriend = Boolean(viewer?.friends.length && viewer?.friendsOf.length)
-  const isBlocked = blockedIdsList.includes(targetId)
+  const isBlocked = viewerBlocked.includes(targetId) || viewerBlockedBy.includes(targetId)
 
   if (!isFriend || isBlocked) return null
 
@@ -197,7 +225,9 @@ export async function sendFriendRequest(targetUserId: string) {
   if (!targetUserId?.trim()) throw new Error("Missing userId")
   if (targetUserId === session.user.id) throw new Error("You cannot send a friend request to yourself")
 
-  const [currentUser, targetUser, blockedIdsList] = await Promise.all([
+  enforceRateLimit(session.user.id, "friend_mutation", RELATIONSHIP_RATE_LIMIT)
+
+  const [currentUser, targetUser, blockedIdsList, blockedByIdsList] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -208,10 +238,12 @@ export async function sendFriendRequest(targetUserId: string) {
     }),
     prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } }),
     loadBlockedIds(session.user.id),
+    loadBlockedByIds(session.user.id),
   ])
 
   if (!currentUser || !targetUser) throw new Error("User not found")
   if (blockedIdsList.includes(targetUserId)) throw new Error("Unblock this user before sending a friend request")
+  if (blockedByIdsList.includes(targetUserId)) throw new Error("Unable to send a friend request to this user")
 
   const hasOutgoing = currentUser.friends.length > 0
   const hasIncoming = currentUser.friendsOf.length > 0
@@ -236,7 +268,9 @@ export async function acceptFriendRequest(targetUserId: string) {
   if (!targetUserId?.trim()) throw new Error("Missing userId")
   if (targetUserId === session.user.id) throw new Error("You cannot accept your own friend request")
 
-  const [currentUser, targetUser, blockedIdsList] = await Promise.all([
+  enforceRateLimit(session.user.id, "friend_mutation", RELATIONSHIP_RATE_LIMIT)
+
+  const [currentUser, targetUser, blockedIdsList, blockedByIdsList] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -246,10 +280,12 @@ export async function acceptFriendRequest(targetUserId: string) {
     }),
     prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } }),
     loadBlockedIds(session.user.id),
+    loadBlockedByIds(session.user.id),
   ])
 
   if (!currentUser || !targetUser) throw new Error("User not found")
   if (blockedIdsList.includes(targetUserId)) throw new Error("Unblock this user before accepting the friend request")
+  if (blockedByIdsList.includes(targetUserId)) throw new Error("Unable to accept this friend request")
 
   const hasOutgoing = currentUser.friends.length > 0
   const hasIncoming = currentUser.friendsOf.length > 0
@@ -266,12 +302,47 @@ export async function acceptFriendRequest(targetUserId: string) {
   return { success: true, status: "friend" }
 }
 
+export async function removeFriend(targetUserId: string) {
+  const session = await getAppSession()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  if (!targetUserId?.trim()) throw new Error("Missing userId")
+  if (targetUserId === session.user.id) throw new Error("Cannot unfriend yourself")
+
+  enforceRateLimit(session.user.id, "friend_mutation", RELATIONSHIP_RATE_LIMIT)
+
+  // Sever both sides of the UserFriends relation so neither user considers the
+  // other a friend or a pending request.
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        friends: { disconnect: { id: targetUserId } },
+        friendsOf: { disconnect: { id: targetUserId } },
+      },
+    }),
+    prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        friends: { disconnect: { id: session.user.id } },
+        friendsOf: { disconnect: { id: session.user.id } },
+      },
+    }),
+  ])
+
+  revalidatePath("/friends")
+  revalidatePath(`/friends/${targetUserId}`)
+  return { success: true }
+}
+
 export async function blockUser(targetUserId: string) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
   if (!targetUserId?.trim()) throw new Error("Missing userId")
   if (targetUserId === session.user.id) throw new Error("Cannot block yourself")
+
+  enforceRateLimit(session.user.id, "friend_mutation", RELATIONSHIP_RATE_LIMIT)
 
   await prisma.$executeRaw`
     INSERT INTO "BlockedUser" ("blockerId", "blockedId", "createdAt")
@@ -289,6 +360,8 @@ export async function unblockUser(targetUserId: string) {
 
   if (!targetUserId?.trim()) throw new Error("Missing userId")
 
+  enforceRateLimit(session.user.id, "friend_mutation", RELATIONSHIP_RATE_LIMIT)
+
   await prisma.$executeRaw`
     DELETE FROM "BlockedUser" WHERE "blockerId" = ${session.user.id} AND "blockedId" = ${targetUserId}
   `
@@ -304,9 +377,11 @@ export async function searchUsers(q: string, take = 20) {
   const trimmed = q.trim()
   if (trimmed.length < 2) return { users: [] }
 
+  enforceRateLimit(session.user.id, "search", SEARCH_RATE_LIMIT)
+
   const limit = Math.min(Math.max(take, 1), 20)
 
-  const [currentUser, blockedIdsList] = await Promise.all([
+  const [currentUser, blockedIdsList, blockedByIdsList] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -315,15 +390,19 @@ export async function searchUsers(q: string, take = 20) {
       },
     }),
     loadBlockedIds(session.user.id),
+    loadBlockedByIds(session.user.id),
   ])
 
   const outgoingIds = new Set((currentUser?.friends || []).map((u) => u.id))
   const incomingIds = new Set((currentUser?.friendsOf || []).map((u) => u.id))
   const blockedIds = new Set(blockedIdsList)
+  const blockedByIds = new Set(blockedByIdsList)
 
   const users = await prisma.user.findMany({
     where: {
       id: { not: session.user.id },
+      // Hide users who have blocked the viewer entirely from search results.
+      NOT: { id: { in: [...blockedByIds] } },
       OR: [
         { username: { contains: trimmed, mode: "insensitive" } },
         { firstName: { contains: trimmed, mode: "insensitive" } },
@@ -338,7 +417,34 @@ export async function searchUsers(q: string, take = 20) {
   return {
     users: users.map((u) => ({
       ...u,
-      relationshipStatus: getRelationshipStatus(u.id, outgoingIds, incomingIds, blockedIds),
+      relationshipStatus: getRelationshipStatus(u.id, outgoingIds, incomingIds, blockedIds, blockedByIds),
     })),
   }
+}
+
+/**
+ * Returns true if viewer is allowed to read resources owned by targetUserId
+ * (e.g., media files, profile picture). Requires mutual friendship and no
+ * active block in either direction.
+ */
+export async function canViewFriendResources(viewerId: string, targetUserId: string): Promise<boolean> {
+  if (!viewerId || !targetUserId) return false
+  if (viewerId === targetUserId) return true
+
+  const [viewer, blocked, blockedBy] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: viewerId },
+      select: {
+        friends: { where: { id: targetUserId }, select: { id: true } },
+        friendsOf: { where: { id: targetUserId }, select: { id: true } },
+      },
+    }),
+    loadBlockedIds(viewerId),
+    loadBlockedByIds(viewerId),
+  ])
+
+  const isFriend = Boolean(viewer?.friends.length && viewer?.friendsOf.length)
+  if (!isFriend) return false
+  if (blocked.includes(targetUserId) || blockedBy.includes(targetUserId)) return false
+  return true
 }

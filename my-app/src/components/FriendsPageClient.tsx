@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { staggerContainer, cardVariant, fadeUp, sectionReveal, listItem } from "@/lib/animations"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
-import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser } from "@/lib/actions/friends"
+import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser, removeFriend } from "@/lib/actions/friends"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
 type ActionTone = "neutral" | "danger" | "soft"
@@ -166,6 +166,23 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
       await refreshFriends()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to block friend")
+    } finally {
+      setRelationshipActionUserId(null)
+    }
+  }
+
+  const unfriend = async (userId: string) => {
+    if (typeof window !== "undefined" && !window.confirm("Remove this friend? You can always send a new friend request later.")) {
+      return
+    }
+    setRelationshipActionUserId(userId)
+    setError("")
+    try {
+      await removeFriend(userId)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, relationshipStatus: "none" } : u)))
+      await refreshFriends()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to remove friend")
     } finally {
       setRelationshipActionUserId(null)
     }
@@ -335,6 +352,12 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                         key={friend.id}
                         user={friend}
                         href={`/friends/${friend.id}`}
+                        secondaryAction={{
+                          label: relationshipActionUserId === friend.id ? "..." : "Unfriend",
+                          onClick: () => unfriend(friend.id),
+                          tone: "soft",
+                          disabled: relationshipActionUserId === friend.id,
+                        }}
                         action={{
                           label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
                           onClick: () => blockFriend(friend.id),
@@ -401,8 +424,8 @@ function renderRelationshipAction(
   )
 }
 
-function RelationshipCard({ user, badge, compact = false, action, href }: {
-  user: UserCard; badge?: string; compact?: boolean; action?: CardAction; href?: string
+function RelationshipCard({ user, badge, compact = false, action, secondaryAction, href }: {
+  user: UserCard; badge?: string; compact?: boolean; action?: CardAction; secondaryAction?: CardAction; href?: string
 }) {
   const content = (
     <>
@@ -419,6 +442,15 @@ function RelationshipCard({ user, badge, compact = false, action, href }: {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {badge && <span className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-sm"} rounded-xl bg-white/70 font-medium text-[#1a4d3e]`}>{badge}</span>}
+        {secondaryAction && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); secondaryAction.onClick() }}
+            disabled={secondaryAction.disabled}
+            className={getActionClassName(secondaryAction.tone || "neutral", compact, Boolean(secondaryAction.disabled))}
+          >
+            {secondaryAction.label}
+          </button>
+        )}
         {action && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); action.onClick() }}

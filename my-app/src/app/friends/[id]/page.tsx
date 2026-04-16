@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation"
 import { getAppSession } from "@/lib/auth"
 import { getFriendProfile } from "@/lib/actions/friends"
 import AnimatedSection from "@/components/AnimatedSection"
+import FriendProfileActions from "@/components/FriendProfileActions"
 
 function displayName(user: {
   username: string
@@ -92,6 +93,8 @@ export default async function FriendProfilePage({
                 </p>
               </div>
             </div>
+
+            <FriendProfileActions friendId={friend.id} />
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-2xl bg-white/60 p-4">

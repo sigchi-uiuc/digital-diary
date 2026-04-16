@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAppSession } from "@/lib/auth"
 import { fetchWeatherFromCoordinates } from "@/lib/weather"
+import { rateLimit, DEFAULT_API_RATE_LIMIT } from "@/lib/rateLimit"
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getAppSession()
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const rl = rateLimit(`weather:${session.user.id}`, DEFAULT_API_RATE_LIMIT)
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too Many Requests" },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      )
     }
 
     const { searchParams } = new URL(request.url)

@@ -30,6 +30,8 @@ export default async function ViewEntry({
 
   if (!entry) notFound()
 
+  const isOwner = entry.userId === session.user?.id
+
   return (
     <div className="min-h-screen relative z-10">
       <AnimatedNav className="glass-strong sticky top-0 z-50">
@@ -41,12 +43,16 @@ export default async function ViewEntry({
             >
               ← Digital Diary
             </Link>
-            <Link
-              href={`/entries/${entry.id}/edit`}
-              className="glass rounded-2xl px-4 py-2 text-sm font-medium text-[#4A90E2] hover:bg-white/40 transition-all"
-            >
-              Edit
-            </Link>
+            {isOwner ? (
+              <Link
+                href={`/entries/${entry.id}/edit`}
+                className="glass rounded-2xl px-4 py-2 text-sm font-medium text-[#4A90E2] hover:bg-white/40 transition-all"
+              >
+                Edit
+              </Link>
+            ) : (
+              <span className="w-16" aria-hidden="true" />
+            )}
           </div>
         </div>
       </AnimatedNav>

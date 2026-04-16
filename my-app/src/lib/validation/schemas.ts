@@ -20,13 +20,25 @@ export const signupSchema = z
   })
   .strict()
 
+/**
+ * Media URLs are stored either as absolute URLs OR as relative paths we serve
+ * from `/api/uploads/...`. Accept both, cap length.
+ */
+const mediaUrlSchema = z
+  .string()
+  .max(URL_MAX)
+  .refine(
+    (v) => v.startsWith("/api/uploads/") || /^https?:\/\//.test(v),
+    "Invalid media URL"
+  )
+
 export const createEntrySchema = z
   .object({
     type: z.enum(["FREEWRITE", "GUIDED"]),
     content: z.string().max(CONTENT_MAX),
     visibility: z.enum(["PRIVATE", "PUBLIC", "PROTECTED"]).default("PRIVATE"),
-    qualityEmoji: z.string().max(10).optional(),
-    mediaUrls: z.array(z.string().url().max(URL_MAX)).max(MEDIA_URLS_MAX).default([]),
+    qualityEmoji: z.string().max(10).nullable().optional(),
+    mediaUrls: z.array(mediaUrlSchema).max(MEDIA_URLS_MAX).default([]),
     locations: z
       .array(
         z.object({
@@ -45,8 +57,8 @@ export const updateEntrySchema = z
   .object({
     content: z.string().max(CONTENT_MAX).optional(),
     visibility: z.enum(["PRIVATE", "PUBLIC", "PROTECTED"]).optional(),
-    qualityEmoji: z.string().max(10).optional(),
-    mediaUrls: z.array(z.string().url().max(URL_MAX)).max(MEDIA_URLS_MAX).optional(),
+    qualityEmoji: z.string().max(10).nullable().optional(),
+    mediaUrls: z.array(mediaUrlSchema).max(MEDIA_URLS_MAX).optional(),
     locations: z
       .array(
         z.object({
