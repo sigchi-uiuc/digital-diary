@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { getAppSession } from "@/lib/auth"
 import { getEntries } from "@/lib/actions/entries"
 import { getFriendEntries } from "@/lib/actions/friends"
@@ -53,12 +54,6 @@ function LandingPage() {
       title: "Yours, Always",
       body: "Your entries are yours. Private by default, encrypted in transit, never sold, never trained on.",
     },
-  ]
-
-  const steps = [
-    { n: "1", title: "Sign in", body: "Create an account in seconds with Google or email." },
-    { n: "2", title: "Write freely", body: "Start a freewrite entry or pick a guided prompt to kick off a reflection." },
-    { n: "3", title: "Look back", body: "Browse entries by date, mood, or place, and share moments with friends." },
   ]
 
   return (
@@ -137,49 +132,14 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* How it works */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <AnimatedSection preset="reveal">
-            <div className="panel-soft p-8 sm:p-12">
-              <div className="text-center mb-10">
-                <h3 className="text-3xl font-bold text-[#1a4d3e]">How it works</h3>
-                <p className="mt-2 text-[#1a4d3e]/70">Three steps. That&apos;s it.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                {steps.map((s) => (
-                  <div key={s.n} className="rounded-2xl bg-white/50 p-5">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center mb-3">
-                      {s.n}
-                    </div>
-                    <h4 className="font-semibold text-[#1a4d3e]">{s.title}</h4>
-                    <p className="mt-1.5 text-sm text-[#1a4d3e]/75">{s.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </AnimatedSection>
-        </section>
-
-        {/* CTA */}
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          <AnimatedSection preset="hero">
-            <div className="panel-soft p-10 sm:p-14 text-center">
-              <h3 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#1a4d3e] to-[#4A90E2] bg-clip-text text-transparent">
-                Write the first page tonight.
-              </h3>
-              <p className="mt-4 text-[#1a4d3e]/75 max-w-xl mx-auto">
-                You don&apos;t need the perfect sentence. Just show up. Your future self will thank you.
-              </p>
-              <div className="mt-8">
-                <Link href="/auth/signup" className="btn-glossy rounded-2xl px-8 py-3 text-white font-semibold inline-block">
-                  Create your diary
-                </Link>
-              </div>
-            </div>
-          </AnimatedSection>
-        </section>
-
-        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-2">
+        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-4">
+          <div className="w-full flex items-center justify-center gap-6">
+            <Image src="/uploads/UIUC_logo.png" alt="University of Illinois Urbana-Champaign" width={240} height={240} className="rounded-md object-contain" style={{ width: 240, height: 240 }} />
+            <Image src="/uploads/sig-chi_logo.png" alt="ACM SIG-CHI" width={480} height={480} className="rounded-md object-contain" style={{ width: 480, height: 480 }} />
+          </div>
+          <p className="text-[#1a4d3e]/70">
+            Developed by students in ACM&apos;s SIG-CHI at the University of Illinois Urbana-Champaign
+          </p>
           <p>© {new Date().getFullYear()} Digital Diary. A quieter place on the internet.</p>
           <p className="flex items-center justify-center gap-4">
             <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
