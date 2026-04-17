@@ -13,8 +13,20 @@ export async function uploadAudio(formData: FormData) {
   const file = formData.get("audio") as File
   if (!file) throw new Error("No audio file uploaded")
 
-  const allowedAudioTypes = ["audio/webm", "audio/ogg", "audio/wav", "audio/mpeg"]
-  if (!allowedAudioTypes.includes(file.type)) {
+  // iOS Safari records `audio/mp4` (AAC); Android/desktop Chrome records
+  // `audio/webm`. Accept common codec variants (some browsers append
+  // `;codecs=opus`).
+  const rawType = (file.type || "").split(";")[0].trim().toLowerCase()
+  const mimeToExt: Record<string, string> = {
+    "audio/webm": "webm",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "audio/aac": "aac",
+    "audio/x-m4a": "m4a",
+  }
+  if (!mimeToExt[rawType]) {
     throw new Error("Invalid audio file type.")
   }
 
@@ -22,15 +34,9 @@ export async function uploadAudio(formData: FormData) {
     throw new Error("Audio file too large. Please upload a file smaller than 50MB.")
   }
 
-  const mimeToExt: Record<string, string> = {
-    "audio/webm": "webm",
-    "audio/ogg": "ogg",
-    "audio/wav": "wav",
-    "audio/mpeg": "mp3",
-  }
-  const fileExtension = mimeToExt[file.type] ?? "webm"
+  const fileExtension = mimeToExt[rawType]
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "entries")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "entries")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -42,7 +48,7 @@ export async function uploadAudio(formData: FormData) {
   await writeFile(filePath, Buffer.from(new Uint8Array(bytes)))
 
   return {
-    url: `/uploads/entries/${fileName}`,
+    url: `/api/uploads/entries/${fileName}`,
     type: file.type,
     size: file.size,
   }
@@ -80,7 +86,7 @@ export async function uploadMedia(formData: FormData) {
     throw new Error(`Invalid file extension. Please upload a ${isVideo ? "video" : "image"} file.`)
   }
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "entries")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "entries")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -103,7 +109,7 @@ export async function uploadMedia(formData: FormData) {
   await writeFile(filePath, buffer)
 
   return {
-    url: `/uploads/entries/${fileName}`,
+    url: `/api/uploads/entries/${fileName}`,
     type: file.type,
     size: file.size,
   }

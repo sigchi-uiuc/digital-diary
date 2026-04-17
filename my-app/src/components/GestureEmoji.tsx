@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scaleIn, fadeIn, fadeUp } from "@/lib/animations";
 import { HandIcon } from "@/components/icons";
@@ -19,40 +19,121 @@ interface GestureEmojiProps {
     mode?: "hand" | "face";
 }
 
-export default function GestureEmoji({ onGestureSelect, mode = "hand" }: GestureEmojiProps) {
-    const [gesture, setGesture] = useState<Gesture>(null);
-    const [confirmed, setConfirmed] = useState(false);
-    const [cameraAvailable, setCameraAvailable] = useState(false);
+export default function GestureEmoji({ onGestureSelect, mode = "face" }: GestureEmojiProps) {
+    const [gesture, setGesture]                 = useState<Gesture>(null);
+    const [confirmed, setConfirmed]             = useState(false);
+    const [cameraActive, setCameraActive]       = useState(false);
+    const [cameraError, setCameraError]         = useState<string | null>(null);
+    const [serverError, setServerError]         = useState<string | null>(null);
 
-    const gestureEndpoint = mode === "face"
-        ? "http://127.0.0.1:8000/face_gesture"
-        : "http://127.0.0.1:8000/gesture";
-    const videoEndpoint = mode === "face"
-        ? "http://127.0.0.1:8000/face_video"
-        : "http://127.0.0.1:8000/video";
+    const videoRef    = useRef<HTMLVideoElement>(null);
+    const canvasRef   = useRef<HTMLCanvasElement>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const streamRef   = useRef<MediaStream | null>(null);
+    const sendingRef  = useRef(false);
 
+    const stopAll = useCallback(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+        intervalRef.current = null;
+        streamRef.current   = null;
+    }, []);
+
+    // Acquire camera once on mount
     useEffect(() => {
-        setCameraAvailable(false);
         setGesture(null);
-        fetch(videoEndpoint)
-            .then(() => setCameraAvailable(true))
-            .catch(() => setCameraAvailable(false));
-    }, [videoEndpoint]);
+        setConfirmed(false);
+        setCameraActive(false);
+        setCameraError(null);
+        setServerError(null);
+        stopAll();
 
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            try {
-                const res = await fetch(gestureEndpoint);
-                const data = await res.json();
-                setGesture(data.gesture);
-                setConfirmed(false);
-            } catch {
-                // Server not running
+        let cancelled = false;
+
+        async function start() {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setCameraError("Camera API not available — ensure the page is served over HTTPS.");
+                return;
             }
-        }, 200);
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                setCameraError(msg);
+                return;
+            }
+            if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
-        return () => clearInterval(interval);
-    }, [gestureEndpoint]);
+            streamRef.current = stream;
+            setCameraActive(true);
+        }
+
+        start();
+        return () => {
+            cancelled = true;
+            stopAll();
+        };
+    }, [stopAll]);
+
+    // Attach stream + start detection interval (re-runs when mode changes)
+    useEffect(() => {
+        if (!cameraActive || !videoRef.current || !streamRef.current) return;
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(() => {});
+
+        const canvas = canvasRef.current!;
+        const ctx2d  = canvas.getContext("2d")!;
+        let cancelled = false;
+
+        // Reset detection state when switching mode
+        setGesture(null);
+        setConfirmed(false);
+        setServerError(null);
+
+        // Clear any previous interval
+        if (intervalRef.current) clearInterval(intervalRef.current);
+
+        intervalRef.current = setInterval(() => {
+            if (sendingRef.current) return;
+            const video = videoRef.current;
+            if (!video || video.readyState < 2) return;
+
+            canvas.width  = 320;
+            canvas.height = 240;
+            ctx2d.drawImage(video, 0, 0, 320, 240);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob || cancelled) return;
+                sendingRef.current = true;
+                try {
+                    const buf = await blob.arrayBuffer();
+                    const res = await fetch(`/api/gesture?mode=${mode}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/octet-stream" },
+                        body: buf,
+                    });
+                    if (!res.ok) {
+                        const errText = await res.text().catch(() => `HTTP ${res.status}`);
+                        setServerError(errText);
+                        return;
+                    }
+                    setServerError(null);
+                    const data = await res.json() as { gesture: Gesture };
+                    setGesture(data.gesture);
+                    setConfirmed(false);
+                } catch (err) {
+                    setServerError(err instanceof Error ? err.message : "Server unreachable");
+                } finally { sendingRef.current = false; }
+            }, "image/jpeg", 0.7);
+        }, 800);
+
+        return () => {
+            cancelled = true;
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        };
+    }, [cameraActive, mode]);
 
     const handleSelect = () => {
         if (gesture && onGestureSelect) {
@@ -67,34 +148,37 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
 
     return (
         <div className="flex flex-col items-center gap-3">
+            <canvas ref={canvasRef} className="hidden" />
 
-            <AnimatePresence>
-                {cameraAvailable && (
-                    <motion.div
-                        variants={scaleIn}
-                        initial="hidden"
-                        animate="visible"
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36"
-                    >
-                        <img
-                            src={videoEndpoint}
-                            alt="Camera feed"
-                            className="w-full h-full object-cover"
-                            onError={() => setCameraAvailable(false)}
-                            style={{ imageRendering: "auto" }}
-                        />
-                        <motion.div
-                            className="absolute bottom-1 right-1 glass text-[#1a4d3e] text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
-                            animate={{ opacity: [1, 0.6, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                        >
-                            <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                            Live
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {cameraError && (
+                <p className="text-xs text-red-500/80 text-center max-w-xs">
+                    Camera unavailable: {cameraError}
+                </p>
+            )}
+
+            {serverError && (
+                <p className="text-xs text-orange-500/80 text-center max-w-xs">
+                    Detection error: {serverError}
+                </p>
+            )}
+
+            <div className={cameraActive ? "relative rounded-2xl overflow-hidden border-2 border-white/40 shadow-lg glass w-48 h-36" : "hidden"}>
+                <video
+                    ref={videoRef}
+                    muted
+                    playsInline
+                    autoPlay
+                    className="w-full h-full object-cover scale-x-[-1]"
+                />
+                <motion.div
+                    className="absolute bottom-1 right-1 glass text-[#1a4d3e] text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+                    animate={{ opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                    Live
+                </motion.div>
+            </div>
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -103,13 +187,13 @@ export default function GestureEmoji({ onGestureSelect, mode = "hand" }: Gesture
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.5, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    style={{ fontSize: gesture ? "60px" : undefined }}
+                    style={{ fontSize: "60px" }}
                     className="flex items-center justify-center"
                 >
                     {gesture
                         ? <span>{EMOJI_MAP[gesture]}</span>
                         : mode === "face"
-                            ? <span style={{ fontSize: "60px" }}>😐</span>
+                            ? <span>😐</span>
                             : <HandIcon className="w-14 h-14 text-[#1a4d3e]/40" />
                     }
                 </motion.div>

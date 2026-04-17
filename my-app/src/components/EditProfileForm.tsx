@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion } from "framer-motion"
 import { sectionReveal, staggerContainerSlow, cardVariant, navSlideDown } from "@/lib/animations"
 import { updateProfile, uploadProfilePicture } from "@/lib/actions/profile"
@@ -182,7 +181,7 @@ export default function EditProfileForm({ initialProfile }: Props) {
                 <div className="flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0">
                     {profilePicture ? (
-                      <Image src={profilePicture} alt="Profile" fill className="object-cover" />
+                      <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-xl font-bold">
                         {displayName().charAt(0).toUpperCase()}

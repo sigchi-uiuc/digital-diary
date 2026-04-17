@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache"
 import { getAppSession } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { EntryType, Visibility } from "@prisma/client"
+import { createEntrySchema, updateEntrySchema } from "@/lib/validation/schemas"
+import { canViewFriendResources } from "@/lib/actions/friends"
 
 export async function getEntries() {
   const session = await getAppSession()
@@ -20,26 +22,30 @@ export async function getEntry(id: string) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  return prisma.entry.findFirst({
-    where: { id, userId: session.user.id },
+  const entry = await prisma.entry.findUnique({
+    where: { id },
     include: { entryLocations: true },
   })
+  if (!entry) return null
+
+  // Owner always allowed.
+  if (entry.userId === session.user.id) return entry
+
+  // Friends may view entries shared with PUBLIC/PROTECTED visibility, provided
+  // the relationship is mutual and neither side has blocked the other.
+  if (entry.visibility === "PRIVATE") return null
+  const allowed = await canViewFriendResources(session.user.id, entry.userId)
+  if (!allowed) return null
+
+  return entry
 }
 
-export async function createEntry(data: {
-  type: string
-  content: string
-  visibility?: string
-  qualityEmoji?: string | null
-  mediaUrls?: string[]
-  locations?: unknown
-}) {
+export async function createEntry(data: unknown) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  const { type, content, visibility = "PRIVATE", qualityEmoji, mediaUrls = [], locations } = data
-
-  if (!type || !content) throw new Error("Type and content are required")
+  const parsed = createEntrySchema.parse(data)
+  const { type, content, visibility, qualityEmoji, mediaUrls, locations } = parsed
 
   const entry = await prisma.entry.create({
     data: {
@@ -47,7 +53,7 @@ export async function createEntry(data: {
       type: type as EntryType,
       content,
       visibility: visibility as Visibility,
-      qualityEmoji,
+      qualityEmoji: qualityEmoji ?? null,
       mediaUrls,
       locations: locations ?? undefined,
     },
@@ -66,18 +72,11 @@ export async function createEntry(data: {
   return entry
 }
 
-export async function updateEntry(
-  id: string,
-  data: {
-    content?: string
-    visibility?: string
-    qualityEmoji?: string | null
-    mediaUrls?: string[]
-    locations?: unknown
-  }
-) {
+export async function updateEntry(id: string, data: unknown) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const parsed = updateEntrySchema.parse(data)
 
   const existing = await prisma.entry.findFirst({
     where: { id, userId: session.user.id },
@@ -87,11 +86,11 @@ export async function updateEntry(
   const entry = await prisma.entry.update({
     where: { id },
     data: {
-      content: data.content,
-      visibility: data.visibility as Visibility | undefined,
-      qualityEmoji: data.qualityEmoji,
-      mediaUrls: data.mediaUrls,
-      locations: data.locations ?? undefined,
+      content: parsed.content,
+      visibility: parsed.visibility as Visibility | undefined,
+      qualityEmoji: parsed.qualityEmoji,
+      mediaUrls: parsed.mediaUrls,
+      locations: parsed.locations ?? undefined,
     },
     include: { entryLocations: true },
   })

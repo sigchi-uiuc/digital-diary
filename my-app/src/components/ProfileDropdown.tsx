@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { signOut } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { dropdownVariants } from "@/lib/animations"
@@ -45,7 +44,7 @@ export default function ProfileDropdown({ user }: Props) {
       >
         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg">
           {user.profilePicture ? (
-            <Image src={user.profilePicture} alt="Profile" width={40} height={40} className="w-full h-full object-cover" />
+            <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
           ) : (
             <span className="flex w-full h-full items-center justify-center">{getInitials()}</span>
           )}
@@ -77,7 +76,7 @@ export default function ProfileDropdown({ user }: Props) {
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg">
                     {user.profilePicture ? (
-                      <Image src={user.profilePicture} alt="Profile" width={48} height={48} className="w-full h-full object-cover" />
+                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <span className="flex w-full h-full items-center justify-center">{getInitials()}</span>
                     )}
@@ -90,12 +89,23 @@ export default function ProfileDropdown({ user }: Props) {
               </div>
 
               <Link
-                href="/profile/edit"
+                href="/profile"
                 className="flex items-center px-5 py-3 text-sm text-[#1a4d3e] hover:bg-white/30 transition-all"
                 onClick={() => setIsOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3 text-[#4A90E2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                View Profile
+              </Link>
+
+              <Link
+                href="/profile/edit"
+                className="flex items-center px-5 py-3 text-sm text-[#1a4d3e] hover:bg-white/30 transition-all"
+                onClick={() => setIsOpen(false)}
+              >
+                <svg className="w-5 h-5 mr-3 text-[#4A90E2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Edit Profile
               </Link>

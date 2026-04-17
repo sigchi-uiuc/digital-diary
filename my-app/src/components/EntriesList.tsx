@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { motion } from "framer-motion"
 import { staggerContainer, cardVariant, emptyState } from "@/lib/animations"
 import { PenIcon, PlayIcon } from "@/components/icons"
@@ -158,12 +157,10 @@ export default function EntriesList({ entries }: Props) {
                   {entry.mediaUrls.slice(0, 3).map((url, index) => {
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
                     return isImage ? (
-                      <Image
+                      <img
                         key={index}
                         src={url}
                         alt={`Preview ${index + 1}`}
-                        width={64}
-                        height={64}
                         className="w-16 h-16 object-cover rounded-lg border border-[#1a4d3e]/20"
                       />
                     ) : (

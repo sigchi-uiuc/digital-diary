@@ -1,0 +1,43 @@
+services:
+  gesture-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.gesture
+    restart: unless-stopped
+    environment:
+      # Internal only — not on proxy network, so * is safe here
+      ALLOWED_ORIGINS: "*"
+    networks:
+      - internal   # NOT on proxy — never reachable from outside
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    restart: unless-stopped
+    environment:
+      DATABASE_URL:          "${DATABASE_URL}"
+      NEXTAUTH_URL:          "${NEXTAUTH_URL}"
+      NEXTAUTH_SECRET:       "${NEXTAUTH_SECRET}"
+      GOOGLE_CLIENT_ID:      "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET:  "${GOOGLE_CLIENT_SECRET}"
+      GESTURE_SERVER_URL:    "http://gesture-server:8000"
+      ANTHROPIC_API_KEY:  "${ANTHROPIC_API_KEY}"
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      - gesture-server
+    networks:
+      - internal  # talks to gesture-server
+      - proxy     # reachable by NPM
+
+volumes:
+  uploads:   # persists user uploads across container rebuilds
+
+networks:
+  internal:
+    driver: bridge
+
+  proxy:
+    external: true
+    name: nginx_npm-network

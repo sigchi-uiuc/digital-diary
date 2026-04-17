@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { staggerContainer, cardVariant, fadeUp, sectionReveal, listItem } from "@/lib/animations"
 import RecentFriendEntries from "@/components/RecentFriendEntries"
-import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser } from "@/lib/actions/friends"
+import { sendFriendRequest, acceptFriendRequest, searchUsers, getFriendEntries, blockUser, unblockUser, removeFriend } from "@/lib/actions/friends"
 
 type RelationshipStatus = "none" | "friend" | "outgoing_request" | "incoming_request" | "blocked"
 type ActionTone = "neutral" | "danger" | "soft"
@@ -172,6 +171,23 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
     }
   }
 
+  const unfriend = async (userId: string) => {
+    if (typeof window !== "undefined" && !window.confirm("Remove this friend? You can always send a new friend request later.")) {
+      return
+    }
+    setRelationshipActionUserId(userId)
+    setError("")
+    try {
+      await removeFriend(userId)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, relationshipStatus: "none" } : u)))
+      await refreshFriends()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to remove friend")
+    } finally {
+      setRelationshipActionUserId(null)
+    }
+  }
+
   const unblockFriend = async (userId: string) => {
     setRelationshipActionUserId(userId)
     setError("")
@@ -245,7 +261,7 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                       <div className="flex items-center gap-3">
                         <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden">
                           {user.profilePicture ? (
-                            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
+                            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
                           ) : (
                             <span>{initials(user)}</span>
                           )}
@@ -336,6 +352,12 @@ export default function FriendsPageClient({ initialData, initialFriendEntries }:
                         key={friend.id}
                         user={friend}
                         href={`/friends/${friend.id}`}
+                        secondaryAction={{
+                          label: relationshipActionUserId === friend.id ? "..." : "Unfriend",
+                          onClick: () => unfriend(friend.id),
+                          tone: "soft",
+                          disabled: relationshipActionUserId === friend.id,
+                        }}
                         action={{
                           label: relationshipActionUserId === friend.id ? "Blocking..." : "Block",
                           onClick: () => blockFriend(friend.id),
@@ -402,15 +424,15 @@ function renderRelationshipAction(
   )
 }
 
-function RelationshipCard({ user, badge, compact = false, action, href }: {
-  user: UserCard; badge?: string; compact?: boolean; action?: CardAction; href?: string
+function RelationshipCard({ user, badge, compact = false, action, secondaryAction, href }: {
+  user: UserCard; badge?: string; compact?: boolean; action?: CardAction; secondaryAction?: CardAction; href?: string
 }) {
   const content = (
     <>
       <div className="flex items-center gap-3 min-w-0">
         <div className={`relative ${compact ? "w-9 h-9 text-xs" : "w-11 h-11 text-sm"} rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
           {user.profilePicture ? (
-            <Image src={user.profilePicture} alt={displayName(user)} fill className="object-cover" />
+            <img src={user.profilePicture} alt={displayName(user)} className="w-full h-full object-cover" />
           ) : <span>{initials(user)}</span>}
         </div>
         <div className="min-w-0">
@@ -420,6 +442,15 @@ function RelationshipCard({ user, badge, compact = false, action, href }: {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {badge && <span className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-sm"} rounded-xl bg-white/70 font-medium text-[#1a4d3e]`}>{badge}</span>}
+        {secondaryAction && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); secondaryAction.onClick() }}
+            disabled={secondaryAction.disabled}
+            className={getActionClassName(secondaryAction.tone || "neutral", compact, Boolean(secondaryAction.disabled))}
+          >
+            {secondaryAction.label}
+          </button>
+        )}
         {action && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); action.onClick() }}

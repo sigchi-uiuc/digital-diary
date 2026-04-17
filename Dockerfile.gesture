@@ -1,0 +1,32 @@
+FROM python:3.11-slim
+
+# OpenCV system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libgl1 \
+    libgles2 \
+    libegl1 \
+    libgstreamer1.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY my-app/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY my-app/src/app/gesture_server.py .
+
+# Download MediaPipe models at build time — not stored in git
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && wget -q -O hand_landmarker.task \
+       https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task \
+    && wget -q -O face_landmarker.task \
+       https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task \
+    && apt-get purge -y --auto-remove wget \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV ALLOWED_ORIGINS="http://localhost:3444"
+
+EXPOSE 8000
+
+CMD ["uvicorn", "gesture_server:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -11,8 +11,8 @@ import { getMoodGradient } from "@/lib/moodColors"
 import GestureEmoji from "@/components/GestureEmoji"
 import VoiceRecorder from "@/components/VoiceRecorder"
 import { createEntry } from "@/lib/actions/entries"
-import { getTrackingMode } from "@/lib/actions/profile"
 import { generateFollowUpQuestions } from "@/lib/actions/journal"
+import { getProfile } from "@/lib/actions/profile"
 
 export default function CreateGuidedEntry() {
   const [currentStep, setCurrentStep] = useState<"mood" | "prompts" | "confirm-followup" | "followup">("mood")
@@ -25,9 +25,16 @@ export default function CreateGuidedEntry() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [currentDateTime, setCurrentDateTime] = useState("")
-  const [trackingMode, setTrackingMode] = useState<"hand" | "face">("hand")
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null)
+  const [detectionMode, setDetectionMode] = useState<"face" | "hand">("face")
   const router = useRouter()
+
+  // Load user's saved detection mode preference
+  useEffect(() => {
+    getProfile().then((p) => {
+      setDetectionMode(p.trackingMode === "hand" ? "hand" : "face")
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const update = () => {
@@ -47,12 +54,6 @@ export default function CreateGuidedEntry() {
     update()
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    getTrackingMode().then(mode => {
-      if (mode === "face" || mode === "hand") setTrackingMode(mode)
-    }).catch(() => {})
   }, [])
 
   const handleMoodSelection = (mood: string) => {
@@ -234,11 +235,33 @@ export default function CreateGuidedEntry() {
 
                   <div className="border-t border-white/20 pt-6">
                     <p className="text-center text-sm text-[#1a4d3e]/60 mb-3">
-                      {trackingMode === "face"
-                        ? "Or detect with your facial expression"
-                        : "Or indicate with a hand gesture: thumb up, slightly up, sideways, slightly down, or down"}
+                      Or detect your mood automatically
                     </p>
-                    <GestureEmoji onGestureSelect={handleMoodSelection} mode={trackingMode} />
+                    <div className="flex justify-center gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setDetectionMode("face")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                          detectionMode === "face"
+                            ? "bg-[#4A90E2] text-white"
+                            : "glass text-[#1a4d3e]/70 hover:bg-white/40"
+                        }`}
+                      >
+                        😊 Face
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetectionMode("hand")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                          detectionMode === "hand"
+                            ? "bg-[#4A90E2] text-white"
+                            : "glass text-[#1a4d3e]/70 hover:bg-white/40"
+                        }`}
+                      >
+                        👍 Hand
+                      </button>
+                    </div>
+                    <GestureEmoji onGestureSelect={handleMoodSelection} mode={detectionMode} />
                   </div>
                 </motion.div>
               )}

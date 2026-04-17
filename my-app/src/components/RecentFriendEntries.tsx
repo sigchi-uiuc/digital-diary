@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { motion } from "framer-motion"
 import { staggerContainer, listItem, sectionReveal } from "@/lib/animations"
 
@@ -82,7 +81,7 @@ export default function RecentFriendEntries({ variant, initialEntries }: Props) 
             >
               <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-[#4A90E2] to-[#52C9A2] text-white text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0">
                 {entry.user.profilePicture ? (
-                  <Image src={entry.user.profilePicture} alt={displayName(entry.user)} fill className="object-cover" />
+                  <img src={entry.user.profilePicture} alt={displayName(entry.user)} className="w-full h-full object-cover" />
                 ) : (
                   <span>{initials(entry.user)}</span>
                 )}

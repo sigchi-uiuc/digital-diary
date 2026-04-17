@@ -36,6 +36,42 @@ export async function getProfile() {
   return user
 }
 
+export async function getOwnProfile() {
+  const session = await getAppSession()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      ...PROFILE_SELECT,
+      entries: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          type: true,
+          visibility: true,
+          content: true,
+          qualityEmoji: true,
+          mediaUrls: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+  if (!user) throw new Error("User not found")
+  return user
+}
+
+function assertSafeProfilePicture(value: string | null | undefined) {
+  if (value == null || value === "") return
+  // Only allow relative paths we serve ourselves — prevents storing attacker-
+  // controlled absolute URLs (phishing/open-redirect via profile pic).
+  if (!value.startsWith("/api/uploads/profiles/")) {
+    throw new Error("Invalid profile picture URL")
+  }
+}
+
 export async function updateProfile(data: {
   firstName?: string
   lastName?: string
@@ -44,6 +80,10 @@ export async function updateProfile(data: {
 }) {
   const session = await getAppSession()
   if (!session?.user?.id) throw new Error("Unauthorized")
+
+  if (data.profilePicture !== undefined) {
+    assertSafeProfilePicture(data.profilePicture)
+  }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
@@ -58,17 +98,6 @@ export async function updateProfile(data: {
 
   revalidatePath("/profile/edit")
   return user
-}
-
-export async function getTrackingMode(): Promise<string> {
-  const session = await getAppSession()
-  if (!session?.user?.id) return "hand"
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { trackingMode: true },
-  })
-  return user?.trackingMode ?? "hand"
 }
 
 export async function uploadProfilePicture(formData: FormData) {
@@ -98,7 +127,7 @@ export async function uploadProfilePicture(formData: FormData) {
     select: { profilePicture: true },
   })
 
-  const uploadsDir = join(process.cwd(), "public", "uploads", "profiles")
+  const uploadsDir = join(process.cwd(), "data", "uploads", "profiles")
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true })
   }
@@ -118,7 +147,7 @@ export async function uploadProfilePicture(formData: FormData) {
 
   await writeFile(filePath, buffer)
 
-  const publicUrl = `/uploads/profiles/${fileName}`
+  const publicUrl = `/api/uploads/profiles/${fileName}`
 
   const updatedUser = await prisma.user.update({
     where: { id: session.user.id },
@@ -129,14 +158,18 @@ export async function uploadProfilePicture(formData: FormData) {
   // Clean up old profile picture
   if (currentUser?.profilePicture && currentUser.profilePicture !== publicUrl) {
     const oldFileName = currentUser.profilePicture.split("/").pop()
-    if (oldFileName) {
-      const oldFilePath = join(uploadsDir, oldFileName)
-      try {
-        if (existsSync(oldFilePath) && oldFileName.startsWith(session.user.id)) {
-          await unlink(oldFilePath)
+    if (oldFileName && oldFileName.startsWith(session.user.id)) {
+      // Try both new private path and legacy public path
+      const candidates = [
+        join(process.cwd(), "data", "uploads", "profiles", oldFileName),
+        join(process.cwd(), "public", "uploads", "profiles", oldFileName),
+      ]
+      for (const candidate of candidates) {
+        try {
+          if (existsSync(candidate)) await unlink(candidate)
+        } catch {
+          // Non-fatal
         }
-      } catch {
-        // Non-fatal
       }
     }
   }

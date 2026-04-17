@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+env.txt
+*.env.txt
 
 # vercel
 .vercel
@@ -42,3 +44,14 @@ next-env.d.ts
 
 # claude
 .claude
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# TLS certificates (mount into container, never commit)
+/certs/
+
+# User uploads — stored in data/uploads at runtime, not in git
+/data/
