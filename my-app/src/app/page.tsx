@@ -182,8 +182,8 @@ function LandingPage() {
 
         <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-4">
           <div className="flex items-center justify-center gap-6">
-            <Image src="/uploads/UIUC_logo.jpg" alt="University of Illinois Urbana-Champaign" width={48} height={48} className="rounded-md object-contain" />
-            <Image src="/uploads/sig-chi_logo.jpg" alt="ACM SIG-CHI" width={48} height={48} className="rounded-md object-contain" />
+            <Image src="/uploads/UIUC_logo.jpg" alt="University of Illinois Urbana-Champaign" width={120} height={120} className="rounded-md object-contain" style={{ width: 120, height: 120 }} />
+            <Image src="/uploads/sig-chi_logo.jpg" alt="ACM SIG-CHI" width={120} height={120} className="rounded-md object-contain" style={{ width: 120, height: 120 }} />
           </div>
           <p className="text-[#1a4d3e]/70">
             Developed by students in ACM&apos;s SIG-CHI at the University of Illinois Urbana-Champaign
