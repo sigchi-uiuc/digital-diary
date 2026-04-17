@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import { sectionReveal, staggerContainerSlow, cardVariant } from "@/lib/animations"
 import MediaUpload from "@/components/MediaUpload"
@@ -18,8 +17,6 @@ const emojiOptions = [
   { emoji: "😊", label: "Good" },
   { emoji: "😄", label: "Fantastic" },
 ]
-
-const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
 export default function CreateFreewriteEntry() {
   const [content, setContent] = useState("")
@@ -125,14 +122,13 @@ export default function CreateFreewriteEntry() {
                 <label htmlFor="content" className="block text-sm font-medium text-[#1a4d3e] mb-2">
                   What&apos;s on your mind?
                 </label>
-                <div data-color-mode="light">
-                  <MDEditor
-                    value={content}
-                    onChange={(val) => setContent(val || "")}
-                    height={400}
-                    className="w-full border border-gray-300 rounded-md shadow-sm focus-within:ring-1 focus-within:ring-[#4A90E2]"
-                  />
-                </div>
+                <textarea
+                  rows={12}
+                  className="input-glass w-full px-4 py-3 focus:ring-2 focus:ring-[#4A90E2] resize-none"
+                  placeholder="Write freely, no structure needed..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
                 <p className="mt-1 text-xs text-[#1a4d3e]/50">{content.length} characters</p>
               </motion.div>
 

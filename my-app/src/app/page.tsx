@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { getAppSession } from "@/lib/auth"
 import { getEntries } from "@/lib/actions/entries"
 import { getFriendEntries } from "@/lib/actions/friends"
@@ -179,7 +180,14 @@ function LandingPage() {
           </AnimatedSection>
         </section>
 
-        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-2">
+        <footer className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 text-center text-xs text-[#1a4d3e]/55 space-y-4">
+          <div className="flex items-center justify-center gap-6">
+            <Image src="/uploads/UIUC_logo.jpg" alt="University of Illinois Urbana-Champaign" width={48} height={48} className="rounded-md object-contain" />
+            <Image src="/uploads/sig-chi_logo.jpg" alt="ACM SIG-CHI" width={48} height={48} className="rounded-md object-contain" />
+          </div>
+          <p className="text-[#1a4d3e]/70">
+            Developed by students in ACM&apos;s SIG-CHI at the University of Illinois Urbana-Champaign
+          </p>
           <p>© {new Date().getFullYear()} Digital Diary. A quieter place on the internet.</p>
           <p className="flex items-center justify-center gap-4">
             <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
